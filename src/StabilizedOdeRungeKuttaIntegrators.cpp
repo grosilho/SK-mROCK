@@ -1,198 +1,11 @@
 #include "StabilizedOdeRungeKuttaIntegrators.h"
 #include "ChebyshevMethods.h"
-#include "LegendreMethods.h"
 
-IERKC::IERKC(Parameters* param_, MultirateOde* mode_)
-:MultirateOdeRungeKuttaIntegrator(param_,mode_)
-{
-    Astable = false;
-    err_order = 1;
-    
-    damping = 0.05;
-    beta = 2.-4.*damping/3.;
-       
-    for(int i=0;i<4;i++)
-        integr_add[i]=new Vector(mode->get_system_size());
-    
-    if(ode->has_dense_Jacobian())
-    {
-        J.resize(ode->get_system_size(),ode->get_system_size());
-        I = Eigen::MatrixXd::Identity(ode->get_system_size(),ode->get_system_size());
-    }
-    else//use sparse matrices
-    {
-        spJ.resize(ode->get_system_size(),ode->get_system_size());
-        spI.resize(ode->get_system_size(),ode->get_system_size());
-        spI.setIdentity();
-    }
-    
-    reinit_integrator();
-}
-
-IERKC::~IERKC()
-{
-    for(int i=0;i<4;i++)
-        delete integr_add[i];
-}
-
-void IERKC::update_n_stages_and_h(Real& h)
-{
-    /**
-     * Updates the number of stages needed by RKC. It follows the formula
-     * \f$\rho \Delta t \leq \beta s^2 \f$ with some cautions.
-     */
-    
-    unsigned int stages_limit = 1e6;
-    unsigned int safe_add = 1;
-    
-    if(h*eigmax_S<1.5) //for s=1 we have beta=2 and not 2-4/3*damping, so maybe one stage is enough
-        s=1;
-    else if(h*eigmax_S<2.) // if close to 2 then add some stages for safety
-        s=1+safe_add;
-    else // if EE not stable then use RKC formula
-    {
-        s = ceil(sqrt(h*eigmax_S/beta));
-        s += safe_add;
-    }
-
-    //we try to avoid more than max_s stages for roundoff errors reasons
-    if(s>stages_limit)
-    {
-        //if more than max_s stages are needed we resize dt
-        s=stages_limit; 
-        h=0.95*beta*s*s/eigmax_S;     
-        last=false;
-        err_control.update_hn(h);
-    }
-    else if(dt_adaptivity)
-        s = max(s,2); // at least two stages, needed to estimate the error 
-    
-//    write_parameters(h);
-    
-    s_max= max(s_max,s);
-    s_avg += s;    
-}
-
-void IERKC::write_parameters(Real dt)
-{
-    static int nout=1;
-    ofstream outfile;
-            
-    if(nout==1)
-    {
-        outfile.open(param->output_path+string("_params.csv"), ofstream::out);
-        outfile<<"s, dt, rhoF, rhoS"<<endl;
-    }
-    else
-        outfile.open(param->output_path+string("_params.csv"), ofstream::out | ofstream::app);
-    
-    outfile<<setprecision(16)<<s<<", "<<dt<<", "<<eigmax_F<<", "<<eigmax_S<<endl;      
-     
-    outfile.close();
-    
-    nout++;
-}
-
-void IERKC::step(const Real t, const Real& h)
-{
-    Vector*& fn= integr[0];
-    Vector*& Kjm1= integr[1];
-    Vector*& Kjm2= integr[2];
-    Vector*& Kj= integr[3];
-    Vector* swap_ptr=0;   
-    
-    vector<Real> c;
-    vector<Real> d;
-    vector<Real> nu;
-    vector<Real> mu;
-    vector<Real> kappa;
-    
-    ChebyshevMethods::CoefficientsRKC1(mu, nu, kappa, c, d, s, damping);
-    
-    // Stage 0
-    *Kjm1 = *yn;
-        
-    // Stage 1
-    mode->fS(t,*Kjm1,*fn);     
-    *Kj = mu[0]*h*(*fn);
-    *Kj += *Kjm1;
-    
-    // Stages j=2,...,s
-    for(unsigned int j=2;j<=s;j++)
-    {
-        swap_ptr=Kjm2;
-        Kjm2=Kjm1;
-        Kjm1=Kj;
-        Kj=swap_ptr;               
-                
-        mode->fS(t+h*c[j-2],*Kjm1,*Kj);           
-        *Kj *= h*mu[j-1];
-        *Kj += nu[j-1]*(*Kjm1);
-        *Kj += kappa[j-1]*(*Kjm2);                                   
-    }   
-    
-    static unsigned nstep=0;
-    
-    Vector*& dk= integr[0];
-    Vector*& hfyk= integr[1];
-    Vector*& ddk= integr[2];
-    Vector*& tmp1= integr[3];
-    
-            
-    if(ode->has_dense_Jacobian())
-    {
-        if(nstep==0)
-        {
-            nstep++;
-            mode->dfF(t+h,*Kj,J);
-            J = I - J*h;
-            dir_solver.compute(J);
-        }
-        *ynpu = dir_solver.solve(*Kj);
-    }
-    else
-    {
-        if(nstep==0)
-        {
-            nstep++;
-            mode->dfF(t+h,*Kj,spJ);
-            spJ = spI - spJ*h;
-            solver.compute(spJ);
-        }
-        *ynpu = solver.solve(*Kj);
-        lin_solv_iter = solver.iterations();
-    }
-    
-    n_fS_eval += s;
-    n_fF_eval += 1;
-}  
-
-void IERKC::disp_step_info(Real& t, Real& h, bool accepted)
-{
-    std::string delta = u8"\u0394";
-    string rho =u8"\u03C1";
-    
-    cout << scientific;
-    
-    cout<<"Step t = "<<setw(6)<<setprecision(4)<<t<<", "<<delta<<"t = "<<setw(8)<<setprecision(6)<<h
-    <<", s = "<<setw(3)<<s<<", m = "<<setw(3)<<m
-    <<", "<<rho<<"F = "<<setw(3)<<eigmax_F<<", "<<rho<<"S = "<<setw(3)<<eigmax_S
-    <<" and |y_n| = "<<setw(7)<<setprecision(4)<<ynpu->lpNorm<Eigen::Infinity>()<<". ";
-    if(accepted)
-        cout<<" Accepted ";
-    else
-        cout<<" Rejected ";
-    err_control.disp_info();
-    cout<<endl;
-}
-
-// ----------------------------------------------------------------------------
 
 mRKC::mRKC(Parameters* param_, MultirateOde* mode_)
 :MultirateOdeRungeKuttaIntegrator(param_,mode_)
 {
     Astable = false;
-    err_order = 1;
     
     damping = 0.05;
     beta = 2.-4.*damping/3.;
@@ -237,10 +50,7 @@ void mRKC::update_n_stages_and_h(Real& h)
         s=stages_limit; 
         h=0.95*beta*s*s/eigmax_S;     
         last=false;
-        err_control.update_hn(h);
     }
-    else if(dt_adaptivity)
-        s = max(s,2); // at least two stages, needed to estimate the error
 
     // General ODE
 //    m = ceil(sqrt(6.*eigmax_F*h/beta/beta/s/s+1.))+safe_add;
@@ -320,36 +130,6 @@ void mRKC::step(const Real t, const Real& h)
     swap_ptr=ynpu;
     ynpu=Kj;
     Kj=swap_ptr;
-
-    //compute errors
-    if(s>=2)
-    {
-        Real mult, a1, a2, a3;    
-        if(s>2)
-        {
-            mult = (d[s-1]-1.)/((c[s-3]-1.)*(d[s-2]-d[s-1])-(c[s-2]-1)*(d[s-3]-d[s-1]));
-            a1 = (1.-c[s-2])*mult;
-            a2 = (c[s-3]-1.)*mult;
-            a3 = (c[s-2]-c[s-3])*mult;
-        }
-        else
-        {        
-            mult = (d[s-1]-1.)/d[s-1]/c[s-2];
-            a1 = (1.-c[s-2])*mult;
-            a2 = -mult;
-            a3 = c[s-2]*mult;
-        }
-        *Kjm2 *= a1;
-        *Kjm2 += a2*(*Kjm1);
-        *Kjm2 += a3*(*ynpu);
-
-        for(int i=0;i<mode->get_system_size();i++)
-            (*Kjm2)(i) = (*Kjm2)(i)/(a_tol+r_tol*max(abs((*ynpu)(i)),abs((*yn)(i))));
-
-        err_control.get_errD() =Kjm2->norm()/sqrt(mode->get_system_size());
-    }
-    else
-        err_control.get_errD() = 0.;
     
     n_fS_eval += s;
     n_fF_eval += s*m;
@@ -404,7 +184,7 @@ void mRKC::f_eta(Real t, Vector& x, Vector& fx)
     fx *= (1./eta);        
 }  
 
-void mRKC::disp_step_info(Real& t, Real& h, bool accepted)
+void mRKC::disp_step_info(Real& t, Real& h)
 {
     std::string delta = u8"\u0394";
     string rho =u8"\u03C1";
@@ -415,11 +195,7 @@ void mRKC::disp_step_info(Real& t, Real& h, bool accepted)
     <<", s = "<<setw(3)<<s<<", m = "<<setw(3)<<m<<", eta = "<<setw(3)<<eta
     <<", "<<rho<<"F = "<<setw(3)<<eigmax_F<<", "<<rho<<"S = "<<setw(3)<<eigmax_S
     <<" and |y_n| = "<<setw(7)<<setprecision(4)<<ynpu->lpNorm<Eigen::Infinity>()<<". ";
-    if(accepted)
-        cout<<" Accepted ";
-    else
-        cout<<" Rejected ";
-    err_control.disp_info();
+    
     cout<<endl;
 }
 
@@ -429,7 +205,6 @@ RKC1::RKC1(Parameters* param_, Ode* ode_)
 :OdeRungeKuttaIntegrator(param_,ode_)
 {
     Astable = false;
-    err_order = 1;
     
     damping = 0.1;
     beta = 2.-4.*damping/3.;
@@ -485,10 +260,7 @@ void RKC1::update_n_stages_and_h(Real& h)
         else
             h = 0.9*ChebyshevMethods::ls_RKC1(s,damping)/eigmax;
         last=false;
-        err_control.update_hn(h);
     }
-    else if(dt_adaptivity)
-        s = max(s,2); // at least two stages, needed to estimate the error
             
     if(s>s_max)
         s_max=s;    
@@ -502,24 +274,6 @@ void RKC1::write_eigenvalues()
     Matrix jac;
     ode->df(t,*yn,jac);
     Eigen::VectorXcd eigvals = jac.eigenvalues();
-    
-    
-//    if(n_output_eigs==352)
-//    {
-//        ofstream outfile_mat;
-//        outfile_mat.open(param->output_path+string("_mat.m"), ofstream::out);
-//        outfile_mat<<setprecision(16);
-//        outfile_mat<<"t="<<t<<";"<<endl;
-//        outfile_mat<<"jac = zeros("<<jac.rows()<<","<<jac.cols()<<");"<<endl;
-//        for(unsigned int j=0;j<jac.cols();j++)
-//        {
-//            outfile_mat<<"jac(:,"<<j+1<<")=[";
-//            for(unsigned int i=0;i<jac.rows()-1;i++)
-//              outfile_mat<<jac(i,j)<<"; ";
-//            outfile_mat<<jac(jac.rows()-1,j)<<"];"<<endl;
-//        }
-//        outfile_mat.close();
-//    }
     
     ofstream outfile;
     
@@ -601,655 +355,14 @@ void RKC1::step(const Real t, const Real& h)
     swap_ptr=ynpu;
     ynpu=Kj;
     Kj=swap_ptr;
-
-    //compute errors
-    Real mult, a1, a2, a3;    
-    if(s>2)
-    {
-        mult = (d[s-1]-1.)/((c[s-3]-1.)*(d[s-2]-d[s-1])-(c[s-2]-1)*(d[s-3]-d[s-1]));
-        a1 = (1.-c[s-2])*mult;
-        a2 = (c[s-3]-1.)*mult;
-        a3 = (c[s-2]-c[s-3])*mult;        
-    }
-    else// if(s==2)
-    {        
-        mult = (d[s-1]-1.)/d[s-1]/c[s-2];
-        a1 = (1.-c[s-2])*mult;
-        a2 = -mult;
-        a3 = c[s-2]*mult;
-    }
-    *Kjm2 *= a1;
-    *Kjm2 += a2*(*Kjm1);
-    *Kjm2 += a3*(*ynpu);
-     
-    for(int i=0;i<ode->get_system_size();i++)
-        (*Kjm2)(i) = (*Kjm2)(i)/(a_tol+r_tol*max(abs((*ynpu)(i)),abs((*yn)(i))));
-    
-    err_control.get_errD() =Kjm2->norm()/sqrt(ode->get_system_size());
             
     n_f_eval=n_f_eval+s;
 }  
-
-RKC2::RKC2(Parameters* param_, Ode* ode_)
-:OdeRungeKuttaIntegrator(param_,ode_)
-{
-    Astable = false;
-    err_order = 2;
-    
-    damping = 2./13.;
-    beta = 2./3.*(1.-2.*damping/15.);
-    
-    reinit_integrator();
-}
-
-RKC2::~RKC2()
-{
-
-}
-
-void RKC2::update_n_stages_and_h(Real& h)
-{
-    /**
-     * Updates the number of stages needed by RKC. It follows the formula
-     * \f$\rho \Delta t \leq 0.65 (s^2-1) \f$ with some cautions.
-     */
-    
-    unsigned int stages_limit = 1e6;
-    unsigned int safe_add = 2;
-    
-    if(damping<=0.1)
-        s = ceil(sqrt(h*eigmax/beta+1.));
-    else
-    {
-        s = ceil(sqrt(h*eigmax/(2./3.)+1.));
-        while(h*eigmax >= ChebyshevMethods::ls_RKC2(s,damping))
-                ++s;
-    }    
-    s += safe_add;
-                
-    //we try to avoid more than max_s stages for internal stability reasons
-    if(s>stages_limit) 
-    {
-        //if more than max_s stages are needed we resize h       
-        s = stages_limit;
-        if(damping<=0.1)
-            h = 0.9*beta*(s*s-1)/eigmax;
-        else
-            h = 0.9*ChebyshevMethods::ls_RKC2(s,damping)/eigmax;
-        last=false;
-        err_control.update_hn(h);
-    }
-    else//at least 2 stages
-        s=max(s,2);
-            
-    if (s>s_max)
-        s_max=s;
-    s_avg += s;
-}
-
-void RKC2::step(const Real t, const Real& h)
-{
-    /**
-     * Does a RKC step. Given \f$ y_n\f$ at \f$t\f$ it computes 
-     * \f$y\f$ at \f$t+h\f$. Parabolic provides the right hand side function
-     * and sets the Dirichlet boundary conditions.
-     */
-    
-    Vector*& fn= integr[0];
-    Vector*& Kjm1= integr[1];
-    Vector*& Kjm2= integr[2];
-    Vector*& Kj= integr[3];
-    Vector* swap_ptr=0;   
-    
-    vector<Real> c;
-    vector<Real> mu;
-    vector<Real> nu;
-    vector<Real> kappa;
-    vector<Real> gamma;
-    
-    ChebyshevMethods::CoefficientsRKC2(mu, nu, kappa, gamma, c, s, damping);
-    
-    // Stage 0
-    *Kjm1 = *yn;
-        
-    // Stage 1
-    ode->f(t,*Kjm1,*fn); 
-    *Kj = mu[0]*h*(*fn);
-    *Kj += *Kjm1;
-    
-    // Stages j=2,...,s
-    for(unsigned int j=2;j<=s;j++)
-    {
-        swap_ptr=Kjm2;
-        Kjm2=Kjm1;
-        Kjm1=Kj;
-        Kj=swap_ptr;               
-                
-        ode->f(t+h*c[j-2],*Kjm1,*Kj);           
-        *Kj *= h*mu[j-1];
-        *Kj += nu[j-1]*(*Kjm1);
-        *Kj += kappa[j-1]*(*Kjm2);     
-        *Kj += gamma[j-1]*h*(*fn);
-        *Kj += (1.-nu[j-1]-kappa[j-1])*(*yn);
-    }   
-    
-    swap_ptr=ynpu;
-    ynpu=Kj;
-    Kj=swap_ptr;
-
-    // computing local error
-    ode->f(t+h,*ynpu,*Kjm1); 
-    for(int i=0;i<ode->get_system_size();i++)
-    {
-        mu[0] = max(abs((*ynpu)(i)),abs((*yn)(i)));
-        nu[0] = 0.8*((*yn)(i)-(*ynpu)(i))+0.4*h*((*fn)(i)+(*Kjm1)(i));
-        (*Kjm2)(i) = nu[0]/(a_tol+mu[0]*r_tol);
-    }
-    err_control.get_errD() =Kjm2->norm()/sqrt(ode->get_system_size());
-    
-    n_f_eval=n_f_eval+s;
-}  
-
-// ----------------------------------------------------------------------------
-
-RKL1::RKL1(Parameters* param_, Ode* ode_)
-:OdeRungeKuttaIntegrator(param_,ode_)
-{
-    Astable = false;
-    err_order = 1;
-    
-    damping = 0.0;
-    // l_s = beta*s*(s+1);
-    
-    reinit_integrator();
-}
-
-RKL1::~RKL1()
-{
-
-}
-
-void RKL1::update_n_stages_and_h(Real& h)
-{
-    /**
-     * Updates the number of stages needed by RKC. It follows the formula
-     * \f$\rho \Delta t \leq \beta s^2 \f$ with some cautions.
-     */
-    
-    unsigned int stages_limit = 1e6;
-    unsigned int safe_add = 2;
-
-    if(h*eigmax<1.5)
-        s = 1;
-    else if(h*eigmax<2.) //for s=1 we have beta=2 and not depending on damping, so maybe one stage is enough
-        s = 1+safe_add;
-    else
-    {
-        s = ceil( (sqrt(1.+4.*h*eigmax)-1.)/2. );
-        if(damping>0.)
-            while(h*eigmax >= LegendreMethods::ls_RKL1(s,damping))
-                ++s;
-        s += safe_add;
-    }
-    
-    //we try to avoid more than max_s stages for roundoff errors reasons
-    if(s>stages_limit)
-    {
-        //if more than max_s stages are needed we resize dt
-        s=stages_limit; 
-        if(damping==0.)
-            h=0.9*s*(s+1.)/eigmax;     
-        else 
-            h=0.9*LegendreMethods::ls_RKL1(s,damping)/eigmax;     
-        last=false;
-        err_control.update_hn(h);
-    }
-    else if(dt_adaptivity)
-        s = max(s,2); // at least two stages, needed to estimate the error
-            
-    if(s>s_max)
-        s_max=s;    
-    s_avg += s;
-}
-
-void RKL1::step(const Real t, const Real& h)
-{
-    Vector*& fn= integr[0];
-    Vector*& Kjm1= integr[1];
-    Vector*& Kjm2= integr[2];
-    Vector*& Kj= integr[3];
-    Vector* swap_ptr=0;   
-    
-    vector<Real> c;
-    vector<Real> d;
-    vector<Real> nu;
-    vector<Real> mu;
-    vector<Real> kappa;
-    
-    LegendreMethods::CoefficientsRKL1(mu, nu, kappa, c, d, s, damping);
-    
-    // Stage 0
-    *Kjm1 = *yn;
-        
-    // Stage 1
-    ode->f(t,*Kjm1,*fn); 
-    *Kj = mu[0]*h*(*fn);
-    *Kj += *Kjm1;
-    
-    // Stages j=2,...,s
-    for(unsigned int j=2;j<=s;j++)
-    {
-        swap_ptr=Kjm2;
-        Kjm2=Kjm1;
-        Kjm1=Kj;
-        Kj=swap_ptr;               
-                
-        ode->f(t+h*c[j-2],*Kjm1,*Kj);           
-        *Kj *= h*mu[j-1];
-        *Kj += nu[j-1]*(*Kjm1);
-        *Kj += kappa[j-1]*(*Kjm2);                                   
-    }   
-    
-    swap_ptr=ynpu;
-    ynpu=Kj;
-    Kj=swap_ptr;
-
-    //compute errors
-    Real mult, a1, a2, a3;    
-    if(s>2)
-    {
-        mult = (d[s-1]-1.)/((c[s-3]-1.)*(d[s-2]-d[s-1])-(c[s-2]-1)*(d[s-3]-d[s-1]));
-        a1 = (1.-c[s-2])*mult;
-        a2 = (c[s-3]-1.)*mult;
-        a3 = (c[s-2]-c[s-3])*mult;        
-    }
-    else// if(s==2)
-    {        
-        mult = (d[s-1]-1.)/d[s-1]/c[s-2];
-        a1 = (1.-c[s-2])*mult;
-        a2 = -mult;
-        a3 = c[s-2]*mult;
-    }
-    *Kjm2 *= a1;
-    *Kjm2 += a2*(*Kjm1);
-    *Kjm2 += a3*(*ynpu);
-     
-    for(int i=0;i<ode->get_system_size();i++)
-        (*Kjm2)(i) = (*Kjm2)(i)/(a_tol+r_tol*max(abs((*ynpu)(i)),abs((*yn)(i))));
-    
-    err_control.get_errD() =Kjm2->norm()/sqrt(ode->get_system_size());
-            
-    n_f_eval=n_f_eval+s;
-}  
-
-RKL2::RKL2(Parameters* param_, Ode* ode_)
-:OdeRungeKuttaIntegrator(param_,ode_)
-{
-    Astable = false;
-    err_order = 2;
-    
-    damping = 0.;
-    
-    reinit_integrator();
-}
-
-RKL2::~RKL2()
-{
-
-}
-
-void RKL2::update_n_stages_and_h(Real& h)
-{
-    /**
-     * Updates the number of stages needed by RKC. It follows the formula
-     * \f$\rho \Delta t \leq 0.65 (s^2-1) \f$ with some cautions.
-     */
-    
-    unsigned int stages_limit = 1e6;
-    unsigned int safe_add = 2;
-    
-    s = ceil(0.5*(sqrt(1.+8.*(1.+h*eigmax))-1.));
-    if(damping>0.)
-        while(h*eigmax >= LegendreMethods::ls_RKL2(s,damping))
-            ++s;
-    s+=safe_add;
-    
-    //we try to avoid more than max_s stages for internal stability reasons
-    if(s>stages_limit) 
-    {
-        //if more than max_s stages are needed we resize h       
-        s = stages_limit;
-        if(damping==0.)
-            h = 0.9*0.5*(s-1.)*(s+2.)/eigmax;
-        else
-            h = 0.9*LegendreMethods::ls_RKL2(s,damping)/eigmax;
-        last=false;
-        err_control.update_hn(h);
-    }
-    else//at least 2 stages
-        s=max(s,2);
-            
-    if (s>s_max)
-        s_max=s;
-    s_avg += s;
-}
-
-void RKL2::step(const Real t, const Real& h)
-{
-    /**
-     * Does a RKC step. Given \f$ y_n\f$ at \f$t\f$ it computes 
-     * \f$y\f$ at \f$t+h\f$. Parabolic provides the right hand side function
-     * and sets the Dirichlet boundary conditions.
-     */
-    
-    Vector*& fn= integr[0];
-    Vector*& Kjm1= integr[1];
-    Vector*& Kjm2= integr[2];
-    Vector*& Kj= integr[3];
-    Vector* swap_ptr=0;   
-    
-    vector<Real> c;
-    vector<Real> mu;
-    vector<Real> nu;
-    vector<Real> kappa;
-    vector<Real> gamma;
-    
-    LegendreMethods::CoefficientsRKL2(mu, nu, kappa, gamma, c, s, damping);
-    
-    // Stage 0
-    *Kjm1 = *yn;
-        
-    // Stage 1
-    ode->f(t,*Kjm1,*fn); 
-    *Kj = mu[0]*h*(*fn);
-    *Kj += *Kjm1;
-    
-    // Stages j=2,...,s
-    for(unsigned int j=2;j<=s;j++)
-    {
-        swap_ptr=Kjm2;
-        Kjm2=Kjm1;
-        Kjm1=Kj;
-        Kj=swap_ptr;               
-                
-        ode->f(t+h*c[j-2],*Kjm1,*Kj);           
-        *Kj *= h*mu[j-1];
-        *Kj += nu[j-1]*(*Kjm1);
-        *Kj += kappa[j-1]*(*Kjm2);     
-        *Kj += gamma[j-1]*h*(*fn);
-        *Kj += (1.-nu[j-1]-kappa[j-1])*(*yn);
-    }   
-    
-    swap_ptr=ynpu;
-    ynpu=Kj;
-    Kj=swap_ptr;
-
-    // computing local error
-    ode->f(t+h,*ynpu,*Kjm1); 
-    for(int i=0;i<ode->get_system_size();i++)
-    {
-        mu[0] = max(abs((*ynpu)(i)),abs((*yn)(i)));
-        nu[0] = 0.8*((*yn)(i)-(*ynpu)(i))+0.4*h*((*fn)(i)+(*Kjm1)(i));
-        (*Kjm2)(i) = nu[0]/(a_tol+mu[0]*r_tol);
-    }
-    err_control.get_errD() =Kjm2->norm()/sqrt(ode->get_system_size());
-    
-    n_f_eval=n_f_eval+s;
-}  
-
-// ----------------------------------------------------------------------------
-
-RKU1::RKU1(Parameters* param_, Ode* ode_)
-:OdeRungeKuttaIntegrator(param_,ode_)
-{
-    Astable = false;
-    err_order = 1;
-    
-    damping = 0.0;
-    
-    reinit_integrator();
-}
-
-RKU1::~RKU1()
-{
-
-}
-
-void RKU1::update_n_stages_and_h(Real& h)
-{
-    /**
-     * Updates the number of stages needed by RKC. It follows the formula
-     * \f$\rho \Delta t \leq \beta s^2 \f$ with some cautions.
-     */
-    
-    unsigned int stages_limit = 1e6;
-    unsigned int safe_add = 2;
-
-    if(h*eigmax<1.5)
-        s = 1;
-    else if(h*eigmax<2.) //for s=1 we have beta=2 and not 2-4/3*damping, so maybe one stage is enough
-        s=1+safe_add;
-    else
-    {
-        s = ceil(sqrt(1+1.5*h*eigmax)-1.);
-        if(damping>0.)
-            while(h*eigmax >= ChebyshevMethods::ls_RKU1(s,damping))
-                ++s;
-        s += safe_add;
-    }
-
-    //we try to avoid more than max_s stages for roundoff errors reasons
-    if(s>stages_limit)
-    {
-        //if more than max_s stages are needed we resize dt
-        s=stages_limit; 
-        if(damping==0.)
-            h=0.9*(2./3.)*s*(s+2.)/eigmax;     
-        else
-            h = 0.9*ChebyshevMethods::ls_RKU1(s,damping)/eigmax;
-        last=false;
-        err_control.update_hn(h);
-    }
-    else if(dt_adaptivity)
-        s = max(s,2); // at least two stages, needed to estimate the error
-            
-    if(s>s_max)
-        s_max=s;    
-    s_avg += s;
-}
-
-void RKU1::step(const Real t, const Real& h)
-{
-    Vector*& fn= integr[0];
-    Vector*& Kjm1= integr[1];
-    Vector*& Kjm2= integr[2];
-    Vector*& Kj= integr[3];
-    Vector* swap_ptr=0;   
-    
-    vector<Real> c;
-    vector<Real> d;
-    vector<Real> nu;
-    vector<Real> mu;
-    vector<Real> kappa;
-    
-    ChebyshevMethods::CoefficientsRKU1(mu, nu, kappa, c, d, s, damping);
-    
-    // Stage 0
-    *Kjm1 = *yn;
-        
-    // Stage 1
-    ode->f(t,*Kjm1,*fn); 
-    *Kj = mu[0]*h*(*fn);
-    *Kj += *Kjm1;
-    
-    // Stages j=2,...,s
-    for(unsigned int j=2;j<=s;j++)
-    {
-        swap_ptr=Kjm2;
-        Kjm2=Kjm1;
-        Kjm1=Kj;
-        Kj=swap_ptr;               
-                
-        ode->f(t+h*c[j-2],*Kjm1,*Kj);           
-        *Kj *= h*mu[j-1];
-        *Kj += nu[j-1]*(*Kjm1);
-        *Kj += kappa[j-1]*(*Kjm2);                                   
-    }   
-    
-    swap_ptr=ynpu;
-    ynpu=Kj;
-    Kj=swap_ptr;
-
-    //compute errors
-    Real mult, a1, a2, a3;    
-    if(s>2)
-    {
-        mult = (d[s-1]-1.)/((c[s-3]-1.)*(d[s-2]-d[s-1])-(c[s-2]-1)*(d[s-3]-d[s-1]));
-        a1 = (1.-c[s-2])*mult;
-        a2 = (c[s-3]-1.)*mult;
-        a3 = (c[s-2]-c[s-3])*mult;        
-    }
-    else// if(s==2)
-    {        
-        mult = (d[s-1]-1.)/d[s-1]/c[s-2];
-        a1 = (1.-c[s-2])*mult;
-        a2 = -mult;
-        a3 = c[s-2]*mult;
-    }
-    *Kjm2 *= a1;
-    *Kjm2 += a2*(*Kjm1);
-    *Kjm2 += a3*(*ynpu);
-     
-    for(int i=0;i<ode->get_system_size();i++)
-        (*Kjm2)(i) = (*Kjm2)(i)/(a_tol+r_tol*max(abs((*ynpu)(i)),abs((*yn)(i))));
-    
-    err_control.get_errD() =Kjm2->norm()/sqrt(ode->get_system_size());
-            
-    n_f_eval=n_f_eval+s;
-}  
-
-
-RKU2::RKU2(Parameters* param_, Ode* ode_)
-:OdeRungeKuttaIntegrator(param_,ode_)
-{
-    Astable = false;
-    err_order = 2;
-    
-    damping = 0.;
-    
-    reinit_integrator();
-}
-
-RKU2::~RKU2()
-{
-
-}
-
-void RKU2::update_n_stages_and_h(Real& h)
-{
-    /**
-     * Updates the number of stages needed by RKC. It follows the formula
-     * \f$\rho \Delta t \leq 0.65 (s^2-1) \f$ with some cautions.
-     */
-    
-    unsigned int stages_limit = 1e6;
-    unsigned int safe_add = 2;
-    
-    s = ceil(sqrt(4.+2.5*h*eigmax)-1.);
-    if(damping>0.)
-        while(h*eigmax >= ChebyshevMethods::ls_RKU2(s,damping))
-            ++s;
-    s += safe_add;
-                
-    //we try to avoid more than max_s stages for internal stability reasons
-    if(s>stages_limit) 
-    {
-        //if more than max_s stages are needed we resize h       
-        s = stages_limit;
-        if(damping==0.)
-            h = 0.9*0.4*(s-1.)*(s+3.)/eigmax;
-        else
-            h = 0.9*ChebyshevMethods::ls_RKU2(s,damping)/eigmax;
-        last=false;
-        err_control.update_hn(h);
-    }
-    else//at least 2 stages
-        s=max(s,2);
-            
-    if (s>s_max)
-        s_max=s;
-    s_avg += s;
-}
-
-void RKU2::step(const Real t, const Real& h)
-{
-    /**
-     * Does a RKC step. Given \f$ y_n\f$ at \f$t\f$ it computes 
-     * \f$y\f$ at \f$t+h\f$. Parabolic provides the right hand side function
-     * and sets the Dirichlet boundary conditions.
-     */
-    
-    Vector*& fn= integr[0];
-    Vector*& Kjm1= integr[1];
-    Vector*& Kjm2= integr[2];
-    Vector*& Kj= integr[3];
-    Vector* swap_ptr=0;   
-    
-    vector<Real> c;
-    vector<Real> mu;
-    vector<Real> nu;
-    vector<Real> kappa;
-    vector<Real> gamma;
-    
-    ChebyshevMethods::CoefficientsRKU2(mu, nu, kappa, gamma, c, s, damping);
-    
-    // Stage 0
-    *Kjm1 = *yn;
-        
-    // Stage 1
-    ode->f(t,*Kjm1,*fn); 
-    *Kj = mu[0]*h*(*fn);
-    *Kj += *Kjm1;
-    
-    // Stages j=2,...,s
-    for(unsigned int j=2;j<=s;j++)
-    {
-        swap_ptr=Kjm2;
-        Kjm2=Kjm1;
-        Kjm1=Kj;
-        Kj=swap_ptr;               
-                
-        ode->f(t+h*c[j-2],*Kjm1,*Kj);           
-        *Kj *= h*mu[j-1];
-        *Kj += nu[j-1]*(*Kjm1);
-        *Kj += kappa[j-1]*(*Kjm2);     
-        *Kj += gamma[j-1]*h*(*fn);
-        *Kj += (1.-nu[j-1]-kappa[j-1])*(*yn);
-    }   
-    
-    swap_ptr=ynpu;
-    ynpu=Kj;
-    Kj=swap_ptr;
-
-    // computing local error
-    ode->f(t+h,*ynpu,*Kjm1); 
-    for(int i=0;i<ode->get_system_size();i++)
-    {
-        mu[0] = max(abs((*ynpu)(i)),abs((*yn)(i)));
-        nu[0] = 0.8*((*yn)(i)-(*ynpu)(i))+0.4*h*((*fn)(i)+(*Kjm1)(i));
-        (*Kjm2)(i) = nu[0]/(a_tol+mu[0]*r_tol);
-    }
-    err_control.get_errD() =Kjm2->norm()/sqrt(ode->get_system_size());
-    
-    n_f_eval=n_f_eval+s;
-}  
-
 
 ROCK2::ROCK2(Parameters* param_, Ode* ode_)
 :OdeRungeKuttaIntegrator(param_,ode_)
 {
     Astable = false;
-    err_order = 2;
     
     reinit_integrator();
 }
@@ -1277,7 +390,6 @@ void ROCK2::update_n_stages_and_h(Real& h)
         s=198; //s=s-2 with s=200
         h=25950.8/eigmax; //25950.8=0.8*(200*200*0.811-1.5), here s=200
         last=false;
-        err_control.update_hn(h);
     }
     else
         s=max(s,2)-1; //s is s-2
@@ -1383,15 +495,6 @@ void ROCK2::step(const Real t, const Real& h)
     *yjm2 += temp2*(*yjm1); //yjm2 = -dt*sigma*(1-tau/sigma^2)*(f(g_{s-1})-f(g_{s-2})
     *yj += temp1*(*yjm1);   //y = g_s^*
     *yj += *yjm2;           //y = g_s
-
-    //compute errors
-    for(int i=0;i<ode->get_system_size();i++)
-    {
-        ci1 = max(abs((*yj)(i)),abs((*yn)(i)));
-        (*yjm1)(i) = (*yjm2)(i)/(a_tol+ci1*r_tol);
-    }
-    (*yjm1)/= sqrt(ode->get_system_size());
-    err_control.get_errD() = yjm1->norm();
     
     swap_ptr = ynpu;
     ynpu=yj;
@@ -1443,7 +546,6 @@ void DROCK2::update_n_stages_and_h(Real& h)
     {
         s=198; //s=s-2 with s=200
         h=13709/eigmax; //13709=0.8*(202*202*0.42-1.5), here s=200
-        err_control.update_hn(h);
         last=false;
     }
     else //minimum 4 stages
@@ -1575,16 +677,6 @@ void DROCK2::step(const Real t, const Real& h)
     *yj += *yjm2;
     *yj += (2.*sigma_a-0.5)*h*(*ytmp);
     // yj is final solution
-
-    //compute approximate cheap local error
-    for(int i=0;i<ode->get_system_size();i++)
-    {
-        ci1 = max(abs((*yj)(i)),abs((*yn)(i)));
-        (*yjm2)(i) = (*yjm1)(i)/(a_tol+ci1*r_tol);
-    }
-
-    err_control.get_errD() = 0.5*h*(1.-sigma_a*sigma_a/tau_a)*(yjm2->norm())/sqrt(ode->get_system_size());
-//    err_control->get_errD() = 0.5*h*(1.-sigma_a*sigma_a/tau_a)*norm(*yjm2)/ode->system_size();            
     
     //updating solution
     swap_ptr = ynpu;

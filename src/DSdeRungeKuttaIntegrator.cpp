@@ -3,7 +3,6 @@
 DSdeRungeKuttaIntegrator::DSdeRungeKuttaIntegrator(Parameters* param_, DSde* sde_)
 :OdeRungeKuttaIntegrator(param_, sde_), sde(sde_)
 {
-    dt_adaptivity=false;
     needDoubleIntegral = false;
     
     if(sde->get_noise_type()!=DIAGONAL)
@@ -46,9 +45,6 @@ bool DSdeRungeKuttaIntegrator::integrate(HistoryStochasticIntegrals& hsi)
     Real t = 0.;
     Real tend = sde->get_tend();
     Real told=t-1.;    //different from t
-    
-    dt_max = h;
-    dt_min = h;
     
     elapsed_time = get_cpu_time();
     
@@ -95,9 +91,7 @@ bool DSdeRungeKuttaIntegrator::integrate(HistoryStochasticIntegrals& hsi)
     
     if(output_frequency>=0)
         output_final_solution(yn);
-    
-    acc_steps=n_steps;
-    
+        
     return true;
 }    
 
@@ -205,7 +199,7 @@ void DSdeRungeKuttaIntegrator::print_integration_info()
     cout<<"Mean number of stages used: "<<((Real)n_f_eval)/n_steps<<endl;
     cout<<"Number of f total evaluations = "<<n_f_eval<<endl;
     cout<<"Number of g total evaluations = "<<n_g_eval<<endl;
-    cout<<"Time step used: "<<dt_max<<endl;
+    cout<<"Time step used: "<<h<<endl;
     cout<<"Steps: "<<n_steps<<endl;
     cout<<"Number of steps: "<<n_steps<<endl;
     cout<<"Elapsed time: "<<elapsed_time<<endl;

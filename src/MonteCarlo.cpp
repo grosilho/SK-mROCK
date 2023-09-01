@@ -9,7 +9,11 @@ static inline void loadBar(int x, int n, double start, double end);
 MonteCarlo::MonteCarlo(Parameters param_)
 :param(param_)
 {
-
+    DSde* sde=0;
+    DSdeRungeKuttaIntegrator* integrator=0;
+    param.initDSdeIntegration(integrator,sde);
+    delete integrator;
+    delete sde;
 }
 
 MonteCarlo::~MonteCarlo()
@@ -17,7 +21,7 @@ MonteCarlo::~MonteCarlo()
 }
 
 void MonteCarlo::integrate()
-{   
+{  
     X.assign(param.MCiter, Vector::Zero(param.problem_size));
     vector<bool> succeed(param.MCiter,false);
     vector<Real> dt(param.MCiter,0.);

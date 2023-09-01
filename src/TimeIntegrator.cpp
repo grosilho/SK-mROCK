@@ -90,7 +90,17 @@ void TimeIntegrator::read_reference_solution(Vector* refsol)
     input.close();
 }
 
-void TimeIntegrator::compute_errors()
+void TimeIntegrator::compute_errors(const Vector* yn)
 {
-    
+    Vector refsol;
+    read_reference_solution(&refsol);
+
+    Vector diff = refsol - *yn;
+    Real error = diff.norm();
+    Real rel_error = error/refsol.norm();
+
+    cout<<"\n------------------------   Errors   ------------------------"<<endl;
+    cout<<"Error: "<<error<<endl;
+    cout<<"Realtive error: "<<rel_error<<endl;
+    cout<<"------------------------------------------------------------"<<endl;
 }

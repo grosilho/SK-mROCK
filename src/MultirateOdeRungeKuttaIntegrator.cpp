@@ -44,10 +44,7 @@ void MultirateOdeRungeKuttaIntegrator::print_integration_info()
     cout<<"Mean m: "<<m_avg<<endl;
     cout<<"fF evaluations = "<<n_fF_eval<<endl;
     cout<<"fS evaluations = "<<n_fS_eval<<endl;
-    cout<<"Maximal "<<delta<<"t used: "<<dt_max<<endl;
     cout<<"Number of steps: "<<n_steps<<endl;
-    cout<<"Accepted steps: "<<acc_steps<<endl;
-    cout<<"Rejected steps: "<<rej_steps<<endl; 
     cout<<"Elapsed time: "<<elapsed_time<<endl;
     cout<<"------------------------------------------------------------\n"<<endl;
 }
@@ -142,7 +139,7 @@ unsigned int MultirateOdeRungeKuttaIntegrator::rho(Real t, int& iter_F, int& ite
     const Real safe=1.05;
     const Real tol = 1e-3;
     
-    sqrtu= sqrt(uround);
+    sqrtu= sqrt(numeric_limits<Real>::epsilon());
 
 // ------ The initial vectors for the power method are yn --------
 //       and yn+c*f(v_n), where vn=f(yn) a perturbation of yn 
@@ -256,7 +253,7 @@ unsigned int MultirateOdeRungeKuttaIntegrator::rho(Real t, int& iter_F, int& ite
     
 }
 
-void MultirateOdeRungeKuttaIntegrator::disp_step_info(Real& t, Real& h, bool accepted)
+void MultirateOdeRungeKuttaIntegrator::disp_step_info(Real& t, Real& h)
 {
     cout<<setprecision(4)<<scientific;
     
@@ -269,10 +266,5 @@ void MultirateOdeRungeKuttaIntegrator::disp_step_info(Real& t, Real& h, bool acc
     <<" and |y_n+1| = "<<setw(7)<<setprecision(4)
     <<ynpu->lpNorm<Eigen::Infinity>()<<". ";
     
-    if(accepted)
-        cout<<" Accepted "; 
-    else
-        cout<<" Rejected ";
-    err_control.disp_info();
     cout<<endl;
 }

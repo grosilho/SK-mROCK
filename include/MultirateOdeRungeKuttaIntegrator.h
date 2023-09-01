@@ -18,7 +18,7 @@ protected:
   
     virtual void reinit_statistics();
     
-    virtual void disp_step_info(Real& t, Real& h, bool accepted);
+    virtual void disp_step_info(Real& t, Real& h);
     
 protected:
     MultirateOde* mode;

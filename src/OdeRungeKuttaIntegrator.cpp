@@ -7,7 +7,7 @@
 #include "ClassicalOdeRungeKuttaIntegrators.h"
 
 OdeRungeKuttaIntegrator::OdeRungeKuttaIntegrator(Parameters* param_, Ode* ode_)
-:TimeIntegrator(param_,ode_), err_control(param_)
+:TimeIntegrator(param_,ode_)
 {
     yn = new Vector(ode->get_system_size());
     ynpu = new Vector(ode->get_system_size());
@@ -16,21 +16,14 @@ OdeRungeKuttaIntegrator::OdeRungeKuttaIntegrator(Parameters* param_, Ode* ode_)
     
     for(int i=0;i<5;i++)
         integr[i]=new Vector(ode->get_system_size());
-    
-    uround=numeric_limits<Real>::epsilon();
-            
+                
     Astable = false; //default
     
     verbose=param->verbose;
-    dt_adaptivity = param->dtadap;
-    r_tol = param->rtol;
-    a_tol = param->atol;
     output_frequency= param->output_freq;
     internal_rho = !ode->estimation_rho_known();
     rho_freq = param->rho_freq;
-    
-    err_order = 0; // must be redefined in subclasses
-                
+                    
     cout<<fixed<<setfill(' ');
     
 //    reinit_integrator();
@@ -58,10 +51,6 @@ void OdeRungeKuttaIntegrator::reinit_integrator()
     t = 0.;
     tend = ode->get_tend();   
     h = param->dt;
-    
-    err_control.reinit();
-    err_control.update_hn(h);
-    err_control.set_errD_order(err_order); 
 }
  
 void OdeRungeKuttaIntegrator::reinit_statistics()
@@ -71,13 +60,9 @@ void OdeRungeKuttaIntegrator::reinit_statistics()
     min_rho=numeric_limits<int>::max();
     s_max=0;
     s_avg = 0.;
-    dt_max = 0.;
-    dt_min = numeric_limits<Real>::max();
     n_f_eval_rho=0;
     n_f_eval=0;
     n_steps = 0;
-    acc_steps = 0;
-    rej_steps = 0;
     n_output = 1;
 }
 
@@ -87,9 +72,6 @@ bool  OdeRungeKuttaIntegrator::integrate(const Vector& y0, Real t0, Real T,
     if(new_integration)
     {
         this->reinit_statistics();
-        err_control.reinit();
-        err_control.update_hn(h);
-        err_control.set_errD_order(err_order); 
         rho_outdated=true;
         nrho = 0;
         sold=0;
@@ -135,14 +117,8 @@ bool  OdeRungeKuttaIntegrator::integrate()
         if(t+1.01*h>=tend) 
         {
             h=tend-t;
-            err_control.update_hn(h);
             last=true; //it will we be last step (if accepted)
-        }
-        if(h<10.0*uround) //too small h
-        {
-            cout<<"Step size is too small."<<endl;
-            return false;  
-        }
+        }        
         
         if(rho_outdated) 
         {
@@ -163,44 +139,33 @@ bool  OdeRungeKuttaIntegrator::integrate()
         
         n_steps++; //update number of steps 
        
-        err_control.get_new_h(t, hnew);//compute hnew                
-
         if(verbose)
-            this->disp_step_info(t,h,err_control.isAccepted());
+            this->disp_step_info(t,h);
 
-        //Accepted step or without time step adaptivity
-        if(err_control.isAccepted() || !dt_adaptivity)
-        {
-            //do some statistics
-            dt_max = max(dt_max,h);
-            dt_min = min(dt_min,h);
-            
-            //procedure for accepted step
-            accepted_step(t,h);
-            
-            //ynpu becomes yn
-            swap_ptr = yn; 
-            yn = ynpu;      //yn takes the new value 
-            ynpu = swap_ptr; //and ynpu will be free memory
-                        
-            if((last && output_frequency>0) || (output_frequency>0 && acc_steps%output_frequency==0))
-                output_solution(t,yn);
-            
-            if(last)
-                break;
-        }
-        else
-            rejected_step(t,h);
+        //ynpu becomes yn
+        swap_ptr = yn; 
+        yn = ynpu;      //yn takes the new value 
+        ynpu = swap_ptr; //and ynpu will be free memory
+        t=t+h;
+
+        nrho=nrho+1; //consecutive steps without computing the spectral radius
+        nrho=(nrho)%rho_freq; //set to 0 every rho_freq steps
+        rho_outdated = (nrho==0);
+                    
+        if((last && output_frequency>0) || (output_frequency>0 && n_steps%output_frequency==0))
+            output_solution(t,yn);
+        
+        if(last)
+            break;
     }
       
     elapsed_time = get_cpu_time()-elapsed_time;
-    
     
     if(last && output_frequency>=0)
         output_final_solution(yn);
     
     if(last && param->refsol_path.compare(string(""))!=0)
-        compute_errors();
+        compute_errors(yn);
     
     return last;
 }     
@@ -251,41 +216,7 @@ bool  OdeRungeKuttaIntegrator::integrate()
     return true;
 }
 
- void OdeRungeKuttaIntegrator::accepted_step(Real& t, Real& h)
-{
-    /**
-     * Called when the step is accepted. Does output, sets the new time step size
-     * and updated some variables.
-     */
-
-    acc_steps++;
-    t=t+h;
-    if(dt_adaptivity)
-        h=hnew;//next h
-    nrho=nrho+1; //consecutive steps without computing the spectral radius
-    nrho=(nrho)%rho_freq; //set to 0 every rho_freq steps
-    rho_outdated = (nrho==0);
-}
-
-void OdeRungeKuttaIntegrator::rejected_step(Real& t, Real& h)
-{
-    /**
-     * Called when the step is rejected. Does output, chooses the new time step
-     * and updates some variables.
-     */
-     
-    rej_steps++;
-    last=false;     //the step is rejected, it cant be the last one
-    if(dt_adaptivity)
-        h=hnew;
-
-    //the step has been rejected, so we recompute the spectral radius, unless
-    //it has just been computed (nrho==0)
-    if(nrho>0)
-        rho_outdated=true;
-}
-
-void OdeRungeKuttaIntegrator::disp_step_info(Real& t, Real& h, bool accepted)
+void OdeRungeKuttaIntegrator::disp_step_info(Real& t, Real& h)
 {
     string rho =u8"\u03C1";
     cout<<setprecision(4)<<scientific;
@@ -300,11 +231,6 @@ void OdeRungeKuttaIntegrator::disp_step_info(Real& t, Real& h, bool accepted)
     <<" and |y_n+1| = "<<setw(7)<<setprecision(4)
     <<ynpu->lpNorm<Eigen::Infinity>()<<". ";
     
-    if(accepted)
-        cout<<" Accepted "; 
-    else
-        cout<<" Rejected ";
-    err_control.disp_info();
     cout<<endl;
 }
 
@@ -403,7 +329,7 @@ unsigned int OdeRungeKuttaIntegrator::rho(Real t, int& iter)
     const Real safe=1.05;
     const Real tol = 1e-2;
     
-    sqrtu= sqrt(uround);
+    sqrtu= sqrt(numeric_limits<Real>::epsilon());
 
 // ------ The initial vectors for the power method are yn --------
 //       and yn+c*f(v_n), where vn=f(yn) a perturbation of yn 
@@ -520,24 +446,10 @@ void OdeRungeKuttaIntegrator::print_integration_info()
     }
     cout<<"Max s: "<<s_max<<endl;
     cout<<"Mean s: "<<s_avg<<endl;
-    cout<<"f evaluations = "<<n_f_eval<<endl;
-    cout<<"Maximal "<<delta<<"t used: "<<dt_max<<endl;
+    cout<<"f evaluations = "<<n_f_eval<<endl;    
     cout<<"Number of steps: "<<n_steps<<endl;
-    cout<<"Accepted steps: "<<acc_steps<<endl;
-    cout<<"Rejected steps: "<<rej_steps<<endl; 
     cout<<"Elapsed time: "<<elapsed_time<<endl;
     cout<<"------------------------------------------------------------\n"<<endl;
-    
-//    ofstream out(out_file+string("_statistics.txt"), ofstream::out);
-//    out<<setprecision(16);
-//    out<<elapsed_time<<", ";
-//    out<<n_f_eval<<", ";
-//    out<<max_s<<", ";
-//    out<<max_rho<<", ";
-//    out<<n_steps<<", ";
-//    out<<acc_steps<<", ";
-//    out<<rej_steps;
-//    out.close();
 }
 
 unsigned int OdeRungeKuttaIntegrator::get_n_f_eval()

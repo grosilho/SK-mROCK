@@ -1,155 +1,20 @@
 #include "Parameters.h"
 #include "ClassicalOdeRungeKuttaIntegrators.h"
 #include "StabilizedOdeRungeKuttaIntegrators.h"
-#include "MultirateOdeProblems.h"
 #include "ClassicalDSdeRungeKuttaIntegrators.h"
 #include "StabilizedDSdeRungeKuttaIntegrators.h"
 #include "DSdeProblems.h"
-#include "ODECellByCellModel.h"
 #include <GetPot>
 
 
 Parameters::Parameters()
 {
-    problem_size = -1; //must be redefined later when initializind odes, sdes. If not an error will occur
+    problem_size = -1; //must be redefined later when initializing odes, sdes. If not an error will occur
     refsol_path = string("");
 }        
 
 Parameters::~Parameters()
 {
-}
-
-bool Parameters::initOde(Ode*& ode)
-{
-    if(ntest==1)
-        ode = new MultirateDahlquistTestProblem();
-    else if(ntest==2)
-        ode = new ScalarNonStiffNonLinearTest();
-    else if(ntest==3)
-        ode = new NeuronCable();
-    else if(ntest==4)
-        ode = new Brusselator();
-    else if(ntest==5)
-        ode = new MultiratePDEBrusselator();
-    else if(ntest==6)
-        ode = new Krogh10(); 
-    else if(ntest==7)
-        ode = new PopulationDynamics();
-    else if(ntest==8)
-        ode = new VanDerPol();
-    else if(ntest==9)
-        ode = new ODEIonicModel();
-    else if(ntest==10)
-        ode = new MultirateDiffusionRefinedMesh();
-    else if(ntest==11)
-        ode = new MultirateInfectiousDiseaseTransmission();
-    else if(ntest==12)
-        ode = new MultirateRobertsonChemicalSystem();
-    else if(ntest==13)
-        ode = new Oregonator();
-    else if(ntest==14)
-        ode = new MultirateCUSP();
-    else if(ntest==15)
-        ode = new MultiratemReactionDiffusion2DEquations();
-    else if(ntest==16)
-        ode = new MultirateRadiationDiffusion();
-    else if(ntest==17)
-        ode = new MultirateIntegroDifferentialEquation();
-    else if(ntest==18)
-        ode = new MultirateMonoDomain();
-//    else if(ntest==19)
-//        ode = new MonoDomain_in_1D();
-    else if(ntest==20)
-        ode = new MultirateODECellByCellModel(3,*this);//5e-4
-    else
-    {
-        cout<<"Problem not known"<<endl;
-        return false;
-    }
-    
-    output_path = "../results/" + ode->get_problem_name() + "/" + output_file;
-    if(refsol_file.compare(string(""))!=0)
-        refsol_path = "../results/" + ode->get_problem_name() + "/" + refsol_file;
-    
-    problem_size = ode->get_system_size();
-        
-    return true;
-}
-
-bool Parameters::initOdeTimeIntegrator(OdeRungeKuttaIntegrator*& rk, Ode* ode)
-{
-    if(rk_name=="EE")
-        rk = new ExplicitEuler(this,ode);
-    else if(rk_name=="IE")
-        rk = new ImplicitEuler(this,ode);
-    else if(rk_name=="EM")
-        rk = new ExplicitMidpoint(this,ode);
-    else if(rk_name=="IM")
-        rk = new ImplicitMidpoint(this,ode);
-    else if(rk_name=="RK4")
-        rk = new RungeKutta4(this,ode);
-    else if(rk_name=="RKC1")
-        rk = new RKC1(this,ode);
-    else if(rk_name=="RKC2")
-        rk = new RKC2(this,ode);
-    else if(rk_name=="ROCK2")
-        rk = new ROCK2(this,ode);
-    else if(rk_name=="DROCK2")
-        rk = new DROCK2(this,ode);
-    else if(rk_name=="RKL1")
-        rk = new RKL1(this,ode);
-    else if(rk_name=="RKL2")
-        rk = new RKL2(this,ode);
-    else if(rk_name=="RKU1")
-        rk = new RKU1(this,ode);
-    else if(rk_name=="RKU2")
-        rk = new RKU2(this,ode);
-    else if(rk_name=="mRKC")
-    {
-        if(ode->is_multirate())
-            rk = new mRKC(this,dynamic_cast<MultirateOde*>(ode));
-        else
-        {
-            cout<<"ERROR: you cant use the multirate integrator "<<rk_name<<" with the non multirate problem "<<ode->get_problem_name()<<endl;
-            return false;
-        }
-    }
-    else if(rk_name=="IERKC")
-    {
-        if(ode->is_multirate())
-            rk = new IERKC(this,dynamic_cast<MultirateOde*>(ode));
-        else
-        {
-            cout<<"ERROR: you cant use the multirate integrator "<<rk_name<<" with the non multirate problem "<<ode->get_problem_name()<<endl;
-            return false;
-        }
-    }
-    
-//    else if(rk_name=="SROCK2")
-//    {
-//        Sde* sde = dynamic_cast<Sde*>(ode);
-//        rk = new SROCK2(sde, verbose, dtadap, atol, rtol, output_freq);
-//    }
-//    else if(rk_name=="MT")
-//    {
-//        Sde* sde = dynamic_cast<Sde*>(ode);
-//        rk = new MilsteinTalay(sde, verbose, dtadap, atol, rtol, output_freq);
-//    }
-    else
-    {
-        cout<<"Integrator "<<rk_name<<" not known."<<endl;
-        return false;
-    }
-    
-    return true;
-}
-
-bool Parameters::initOdeIntegration(OdeRungeKuttaIntegrator*& rk, Ode*& ode)
-{
-    if(!initOde(ode))
-        return false;
-    
-    return initOdeTimeIntegrator(rk,ode);
 }
 
 bool Parameters::initDSde(DSde*& sde)
@@ -180,9 +45,9 @@ bool Parameters::initDSde(DSde*& sde)
     
     #pragma omp single
     {
-    output_path = "../../../../Results/Tests/" + sde->get_problem_name() + "/" + output_file;
+    output_path = "../results/" + sde->get_problem_name() + "/" + output_file;
     if(refsol_file.compare(string(""))!=0)
-        refsol_path = "../../../../Results/Tests/" + sde->get_problem_name() + "/" + refsol_file;
+        refsol_path = "../results/" + sde->get_problem_name() + "/" + refsol_file;
     
     problem_size = sde->get_system_size();
     }
@@ -207,8 +72,6 @@ bool Parameters::initDSdeTimeIntegrator(DSdeRungeKuttaIntegrator*& rk, DSde* sde
     return true;
 }
 
-
-
 bool Parameters::initDSdeIntegration(DSdeRungeKuttaIntegrator*& integr, DSde*& sde)
 {
     if(!initDSde(sde))
@@ -232,26 +95,9 @@ bool Parameters::read_command_line(int argc, char** argv)
     bin_output = cl.follow(bin_output,3,"-bin_output","-bin_out","-bin");
     specific_output = cl.follow(specific_output,3,"-spec_output","-spec_out","-spec");
     
-    if(cl.search("-ode"))
-        eq = ODE;
-    else if(cl.search(2,"-dsde","-d_sde"))
-        eq = D_SDE;
-    else if(cl.search(2,"-jdsde","-jd_sde"))
-        eq = JD_SDE;
-    
     rk_name = cl.follow(rk_name.c_str(),2,"-solver","-rk");
     dt = cl.follow(dt,3, "-dt", "-tau","-h");
     rho_freq = cl.follow(rho_freq,3, "-rhofreq", "-rho_freq", "-rfreq");
-    
-    if(cl.search("-parareal"))
-        parareal=true;
-    else
-        parareal=false;
-    n_threads = cl.follow(n_threads,2,"-n_threads","-n_cores");
-    outer_rk_name = cl.follow(outer_rk_name.c_str(),3,"-outer_rk","-out_rk","-coarse_rk");
-    inner_rk_name = cl.follow(inner_rk_name.c_str(),3,"-inner_rk","-in_rk","-fine_rk");
-    outer_dt = cl.follow(outer_dt,3, "-outer_dt", "-out_dt","-out_h");
-    inner_dt = cl.follow(inner_dt,3, "-inner_dt", "-in_dt","-in_h");
     
     if(cl.search("-convtest"))
         conv_test=true;
@@ -259,16 +105,6 @@ bool Parameters::read_command_line(int argc, char** argv)
         conv_test=false;
     max_pow = cl.follow(max_pow,2,"-maxpow","-max_pow");
     min_pow = cl.follow(min_pow,2,"-minpow","-min_pow");
-    
-    dtadap = cl.follow(dtadap,3,"-dtadaptivity","-dtadap","-dta");
-    rtol = cl.follow(rtol,2,"-rtol","-rt");
-    if(!cl.search(2,"-atol","-at"))
-        atol=rtol;
-    atol = cl.follow(atol,2,"-atol","-at");
-    if(!cl.search(2,"-rtol","-rt"))
-        rtol=atol;
-    ode_contr = static_cast<Controller>(cl.follow(static_cast<int>(ode_contr),"-oec"));
-    err_write_data = cl.follow(err_write_data,"-ewd");
     
     MCiter = cl.follow(MCiter,3,"-iter","-MCiter","-mciter");
     continuous = cl.follow(continuous,"-contW");
@@ -278,46 +114,15 @@ bool Parameters::read_command_line(int argc, char** argv)
     n_bins = cl.follow(n_bins,"-nbins");
     process_only = cl.follow(process_only,3,"-process_only","-processonly","-po");
     
-    //Some problem specific parameters
-    P20_dG = cl.follow(1e-3,"-dG");
-    P20_cell_l = cl.follow(0.,"-cl");
-    P20_cell_w = cl.follow(0.,"-cw");
-    P20_nx = cl.follow(0,"-nx");
-    P20_ny = cl.follow(0,"-ny");
-    P20_Rl = cl.follow(0.,"-Rl");
-    P20_Rt = cl.follow(0.,"-Rt");
-    P20_si = cl.follow(0.,"-si");
-    P20_se = cl.follow(0.,"-se");
-    P20_tend = cl.follow(0.,"-tend");
-    P20_Imax = cl.follow(0.,"-Imax");
-    P20_vertamp = cl.follow(0.,"-va");
-    P20_vertfreq = cl.follow(0,"-vf");
-    P20_vsmoothwave = cl.follow(true,"-vs");
-    P20_horamp = cl.follow(0.,"-ha");
-    P20_horlen = cl.follow(0.,"-hl");
-    P20_horpos = cl.follow(0.,"-hp");
-    P20_horprob = cl.follow(0.,"-hprob");
-    P20_horalt = cl.follow(-2,"-halt");
-    P20_hsmoothwave = cl.follow(true,"-hs");
-    P20_onlyperp = cl.follow(false,"-op");
-    P20_nic = cl.follow(1,"-nic");
-    
-    if(eq==ODE)//no monte carlo
-        MCiter = 1;
     if(MCiter>1)//no verbose nor output if doing monte carlo
     {
         verbose=false;
         output_freq = -1;
     }
-    if(eq!=ODE || rk_name=="EE" || rk_name=="IE" || rk_name=="EM" || rk_name=="IM" || rk_name=="RK4")
-    {
-        dtadap = false;
-    }
     
     if(conv_test)
     {
         verbose=false;
-        dtadap=false;
         output_freq=-1;
         rho_freq = 1;
     }
@@ -367,68 +172,22 @@ void Parameters::print_info()
 {
     cout<<scientific;
     
-    if(eq==ODE)
+    cout<<"--------------- SDE Integration ---------------"<<endl;        
+    cout<<"Solver: "<<rk_name<<"."<<endl;
+    cout<<"Step size: "<<dt<<"."<<endl;    
+    cout<<"Monte Carlo iterations: "<<MCiter<<"."<<endl;
+    cout<<"Exact Brownian motion: "<<(continuous ? "yes.":"no.")<<endl;
+    cout<<"Seed: "<<seed<<"."<<endl;
+    if(conv_test)
     {
-        cout<<"--------------- ODE Integration ---------------"<<endl;        
-        cout<<"Solver: "<<rk_name<<"."<<endl;
-        cout<<"Step size: "<<dt<<"."<<endl;
-        cout<<"Step size adaptivity: "<<(dtadap ? "yes.":"no.")<<endl;
-        if(dtadap)
-        {
-            cout<<"Controller type: ";
-            if(ode_contr==I)
-                cout<<"I."<<endl;
-            else if(ode_contr==PI)
-                cout<<"PI."<<endl;
-            else if(ode_contr==PPI)
-                cout<<"PPI."<<endl;
-            cout<<"Relative tolerance: "<<rtol<<"."<<endl;
-            cout<<"Absolute tolerance: "<<atol<<"."<<endl;
-            cout<<"Write controller data: "<<(err_write_data ? "yes.":"no.")<<endl;
-        }
-        if(conv_test)
-        {
-            cout<<"Convergence test parameters: min_pow = "<<min_pow<<", max_pow = "<<max_pow<<"."<<endl;
-        }
-        else
-        {
-            cout<<"Output file name: "<<output_path<<endl;
-            cout<<"Output frequency: "<<output_freq<<endl;
-            cout<<"Verbose: "<<(verbose ? "yes.":"no.")<<endl;                      
-        }
-        cout<<"-----------------------------------------------"<<endl;
+        cout<<"Convergence test parameters: min_pow = "<<min_pow<<", max_pow = "<<max_pow<<"."<<endl;
     }
     else
     {
-        cout<<"--------------- SDE Integration ---------------"<<endl;        
-        cout<<"Solver: "<<rk_name<<"."<<endl;
-        cout<<"Step size: "<<dt<<"."<<endl;    
-        cout<<"Monte Carlo iterations: "<<MCiter<<"."<<endl;
-        cout<<"Exact Brownian motion: "<<(continuous ? "yes.":"no.")<<endl;
-        cout<<"Seed: "<<seed<<"."<<endl;
-        if(conv_test)
-        {
-            cout<<"Convergence test parameters: min_pow = "<<min_pow<<", max_pow = "<<max_pow<<"."<<endl;
-        }
-        else
-        {
-            cout<<"Output file name: "<<output_path<<endl;
-            cout<<"Output frequency: "<<output_freq<<endl;
-            cout<<"Verbose: "<<(verbose ? "yes.":"no.")<<endl;                      
-        }
-        cout<<"-----------------------------------------------"<<endl;
+        cout<<"Output file name: "<<output_path<<endl;
+        cout<<"Output frequency: "<<output_freq<<endl;
+        cout<<"Verbose: "<<(verbose ? "yes.":"no.")<<endl;                      
     }
-}
-
-void Parameters::print_info(Ode* ode)
-{
-    cout<<scientific;
-    
-    cout<<"----------------- ODE Problem -----------------"<<endl;
-    cout<<"Problem name: "<<ode->get_problem_name()<<"."<<endl;
-    cout<<"Problem size: "<<ode->get_system_size()<<"."<<endl;
-    cout<<"Constant rho: "<<(ode->is_rho_constant() ? "yes.":"no.")<<endl;
-    cout<<"Known rho estimation: "<<(ode->estimation_rho_known() ? "yes.":"no.")<<endl;
     cout<<"-----------------------------------------------"<<endl;
     
 }

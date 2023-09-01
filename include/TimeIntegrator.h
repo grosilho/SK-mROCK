@@ -23,7 +23,7 @@ protected:
     void output_final_solution(Vector* y);
     void read_reference_solution(Vector* refsol);
     
-    virtual void compute_errors();
+    virtual void compute_errors(const Vector* yn);
 
     Parameters* param;
     Ode* ode;    

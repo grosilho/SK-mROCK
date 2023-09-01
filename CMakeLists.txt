@@ -35,9 +35,6 @@ endif()
 if(GPT_PROFILE AND APPLE)
     message(FATAL_ERROR "Cannot profile with gperftools on MacOSX.")
 endif()
-#if(SCOREP_PROFILE AND ENABLE_OPENMP AND APPLE)
-#    message(FATAL_ERROR "Cannot profile with ScoreP on MacOSX if OpenMP is enabled.")
-#endif()
 
 find_package(Eigen3 REQUIRED CONFIG) # Eigen3::Eigen
 find_package(autodiff REQUIRED CONFIG) # autodiff::autodiff
@@ -76,5 +73,5 @@ include_directories(BEFORE include)
 add_subdirectory(src)
 
 add_executable(main src/main.cpp)
-target_link_libraries(main PUBLIC MainHeader parameters parareal monte_carlo)
+target_link_libraries(main PUBLIC MainHeader parameters monte_carlo)
 

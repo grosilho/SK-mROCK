@@ -6,7 +6,6 @@ ExplicitEuler::ExplicitEuler(Parameters* param_, Ode* ode_)
 {
     Astable = false;
     s = 1;
-    err_order = 1;
     
     reinit_integrator();
 }
@@ -44,7 +43,6 @@ ImplicitEuler::ImplicitEuler(Parameters* param_, Ode* ode_)
 {
     Astable = true;
     s = 1;
-    err_order = 1;
     
     Newton_tol = 1e-5;
     Newton_max_iter = 1e3;
@@ -188,7 +186,6 @@ void ImplicitEuler::disp_step_info(Real& t, Real& h, bool accepted)
         cout<<" Accepted "; 
     else
         cout<<" Rejected ";
-    err_control.disp_info();
     cout<<endl;
 }
 
@@ -199,7 +196,6 @@ ExplicitMidpoint::ExplicitMidpoint(Parameters* param_, Ode* ode_)
 {
     Astable = false;
     s = 2;
-    err_order = 2;
     
     reinit_integrator();
 }
@@ -240,7 +236,6 @@ ImplicitMidpoint::ImplicitMidpoint(Parameters* param_, Ode* ode_)
 {
     Astable = true;
     s = 1;
-    err_order = 2;
     
     Newton_tol = 1e-8;
     Newton_max_iter = 1e3;
@@ -354,7 +349,6 @@ RungeKutta4::RungeKutta4(Parameters* param_, Ode* ode_)
 {
     Astable = false;
     s = 4;
-    err_order = 4;
     
     reinit_integrator();
 }
