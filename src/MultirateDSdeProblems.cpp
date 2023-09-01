@@ -1,8 +1,11 @@
 #include "MultirateDSdeProblems.h"
 
-// MultirateDSdeDahlquistTestProblem
 MultirateDSdeDahlquistTestProblem::MultirateDSdeDahlquistTestProblem()
 :DSdeDahlquistTestProblem(), MultirateDSde()
+{
+}
+
+MultirateDSdeDahlquistTestProblem::~MultirateDSdeDahlquistTestProblem()
 {
 }
 
@@ -20,4 +23,29 @@ void MultirateDSdeDahlquistTestProblem::rho(Real t, Vector& y, Real& eigmaxF, Re
 {
     eigmaxF = abs(lambda);
     eigmaxS = abs(mu);
+}
+
+MultirateDSdeScalarNonStiffNonLinearTest::MultirateDSdeScalarNonStiffNonLinearTest()
+:DSdeScalarNonStiffNonLinearTest(), MultirateDSde()
+{
+}
+
+MultirateDSdeScalarNonStiffNonLinearTest::~MultirateDSdeScalarNonStiffNonLinearTest()
+{
+}
+
+void MultirateDSdeScalarNonStiffNonLinearTest::fF(Real t, Vector& x, Vector& fx)
+{
+    fx(0) = 0.5*sqrt(x(0)*x(0)+1.);
+}
+
+void MultirateDSdeScalarNonStiffNonLinearTest::fS(Real t, Vector& x, Vector& fx)
+{
+    fx(0) = 0.25*x(0);
+}
+    
+void MultirateDSdeScalarNonStiffNonLinearTest::rho(Real t, Vector& y, Real& eigmaxF, Real& eigmaxS)
+{
+    eigmaxF = abs(0.5*y(0)/sqrt(y(0)*y(0)+1));
+    eigmaxS = 0.25;
 }

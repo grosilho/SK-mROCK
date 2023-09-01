@@ -29,7 +29,7 @@ protected:
 };
 
 // Sde One dimensional test 1 from SROCK2 paper
-class DSdeScalarNonStiffNonLinearTest: public DSde
+class DSdeScalarNonStiffNonLinearTest: public virtual DSde
 {
 public:
     DSdeScalarNonStiffNonLinearTest();
@@ -49,8 +49,7 @@ public:
 };
 
 
-// Problem 2 in SROCK2 paper
-class ManyDiffusionTerms: public DSde
+class ManyDiffusionTerms: public virtual DSde
 {
 public:
     ManyDiffusionTerms();

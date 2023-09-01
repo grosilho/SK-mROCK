@@ -93,7 +93,7 @@ void DSdeScalarNonStiffNonLinearTest::set_initial_value(Vector& y0)
 
 void DSdeScalarNonStiffNonLinearTest::f(Real t, Vector& x, Vector& fx)
 {   
-    fx(0) = 0.25*x(0)+0.5*sqrt(x(0)*x(0)+1.);
+    fx(0) = 0.25*x(0) + 0.5*sqrt(x(0)*x(0)+1.);
 }
 
 void DSdeScalarNonStiffNonLinearTest::AN_df(Real t, Vector& x, Matrix& dfx)
@@ -104,7 +104,7 @@ void DSdeScalarNonStiffNonLinearTest::AN_df(Real t, Vector& x, Matrix& dfx)
 
 void DSdeScalarNonStiffNonLinearTest::rho(Real t, Vector& y, Real& eigmax)
 {
-    eigmax = abs(0.25+0.5*y(0)/sqrt(y(0)*y(0)+1.))+1;
+    eigmax = abs(0.25+0.5*y(0)/sqrt(y(0)*y(0)+1));
 }
 
 Real DSdeScalarNonStiffNonLinearTest::phi(const Vector& X)

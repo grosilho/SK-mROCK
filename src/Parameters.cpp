@@ -23,7 +23,7 @@ bool Parameters::initDSde(DSde*& sde)
     if(ntest==1)
         sde = new MultirateDSdeDahlquistTestProblem();
     else if(ntest==2)
-        sde = new DSdeScalarNonStiffNonLinearTest();
+        sde = new MultirateDSdeScalarNonStiffNonLinearTest();
     else if(ntest==3)
         sde = new ManyDiffusionTerms();
 //    else if(ntest==4)

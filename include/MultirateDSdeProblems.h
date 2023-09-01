@@ -7,7 +7,19 @@ class MultirateDSdeDahlquistTestProblem: public DSdeDahlquistTestProblem, public
 {
 public:
     MultirateDSdeDahlquistTestProblem();
-    virtual ~MultirateDSdeDahlquistTestProblem(){};
+    virtual ~MultirateDSdeDahlquistTestProblem();
+
+    void fF(Real t, Vector& x, Vector& fx);
+    void fS(Real t, Vector& x, Vector& fx);
+    
+    void rho(Real t, Vector& y, Real& eigmaxF, Real& eigmaxS);
+};
+
+class MultirateDSdeScalarNonStiffNonLinearTest: public DSdeScalarNonStiffNonLinearTest, public MultirateDSde
+{
+public:
+    MultirateDSdeScalarNonStiffNonLinearTest();
+    virtual ~MultirateDSdeScalarNonStiffNonLinearTest();
 
     void fF(Real t, Vector& x, Vector& fx);
     void fS(Real t, Vector& x, Vector& fx);
