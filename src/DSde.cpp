@@ -3,6 +3,7 @@
 #include "DSde.h"
 
 DSde::DSde()
+:Ode()
 {
     noise=GENERAL;
     Wsize=0;
@@ -35,4 +36,15 @@ void DSde::g(Real t, Vector& x, Vector& G)
 void DSde::g(Real t, Vector& x, Matrix& G)
 {
     cout<<"ERROR: using undefined function g(Real, Vector&, Matrix&)"<<endl;
+}
+
+MultirateDSde::MultirateDSde()
+: Ode(), MultirateOde(), DSde()
+{
+
+}
+
+MultirateDSde::~MultirateDSde()
+{
+
 }

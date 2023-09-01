@@ -36,44 +36,6 @@ private:
     SpMatrix spI;
 };
 
-class ExplicitMidpoint: public OdeRungeKuttaIntegrator
-{
-public:
-    ExplicitMidpoint(Parameters* param_, Ode* ode_);
-    virtual ~ExplicitMidpoint();
-    
-    virtual void step(const Real t, const Real& h);
-    void update_n_stages_and_h(Real& h);
-};
-
-class ImplicitMidpoint: public OdeRungeKuttaIntegrator
-{
-public:
-    ImplicitMidpoint(Parameters* param_, Ode* ode_);
-    virtual ~ImplicitMidpoint();
-    
-    virtual void step(const Real t, const Real& h);
-    void update_n_stages_and_h(Real& h);
-  
-private:
-    Real Newton_tol;
-    unsigned int Newton_max_iter;
-    unsigned int lin_solv_iter;
-    Matrix J;
-    Matrix I;
-    SpMatrix spJ;
-    SpMatrix spI;
-};
-
-class RungeKutta4: public OdeRungeKuttaIntegrator
-{
-public:
-    RungeKutta4(Parameters* param_, Ode* ode_);
-    virtual ~RungeKutta4();
-    
-    virtual void step(const Real t, const Real& h);
-    void update_n_stages_and_h(Real& h);
-};
 
 #endif /* CLASSICALODERUNGEKUTTAINTEGRATORS_H */
 

@@ -221,3 +221,68 @@ bool DSdeRungeKuttaIntegrator::need_double_integral()
 {
     return needDoubleIntegral;
 }
+
+// -------------------------------------
+MultirateDSdeRungeKuttaIntegrator::MultirateDSdeRungeKuttaIntegrator(Parameters* param_, MultirateDSde* msde_)
+: OdeRungeKuttaIntegrator(param_, msde_), 
+  DSdeRungeKuttaIntegrator(param_, msde_), 
+  MultirateOdeRungeKuttaIntegrator(param_, msde_),
+  msde(msde_)
+{
+}
+
+MultirateDSdeRungeKuttaIntegrator::~MultirateDSdeRungeKuttaIntegrator()
+{
+}
+
+void MultirateDSdeRungeKuttaIntegrator::print_integration_info()
+{
+    /**
+     * Some statistics about the time integration.
+     */
+    
+    cout<<scientific;
+
+    string rho =u8"\u03C1";
+    string delta = u8"\u0394";
+    
+    s_avg /= n_steps;
+    m_avg /= n_steps;
+    
+    cout<<"\n-------------------   Integration Info   -------------------"<<endl;    
+    if(Astable)
+        cout<<"The spectral radius has not been computed, "<<param->rk_name<<" is A-stable."<<endl;
+    else
+    {
+        cout<<"Max "<<rho<<"F: "<<max_rho_F<<endl;
+        cout<<"Min "<<rho<<"F: "<<min_rho_F<<endl;
+        cout<<"Max "<<rho<<"S: "<<max_rho_S<<endl;
+        cout<<"Min "<<rho<<"S: "<<min_rho_S<<endl;
+        cout<<"Number of fF eval. for "<<rho<<"F: "<<n_fF_eval_rho<<endl;
+        cout<<"Number of fS eval. for "<<rho<<"S: "<<n_fS_eval_rho<<endl;
+    }
+
+    cout<<"Max s: "<<s_max<<endl;
+    cout<<"Mean s: "<<s_avg<<endl;
+    cout<<"Max m: "<<m_max<<endl;
+    cout<<"Mean m: "<<m_avg<<endl;
+    cout<<"fF evaluations = "<<n_fF_eval<<endl;
+    cout<<"fS evaluations = "<<n_fS_eval<<endl;
+    cout<<"g evaluations = "<<n_g_eval<<endl;
+    cout<<"Time step used: "<<h<<endl;
+    cout<<"Number of steps: "<<n_steps<<endl;
+    cout<<"Elapsed time: "<<elapsed_time<<endl;
+    cout<<"------------------------------------------------------------\n"<<endl;
+    
+}
+
+void MultirateDSdeRungeKuttaIntegrator::reinit_statistics()
+{    
+    MultirateOdeRungeKuttaIntegrator::reinit_statistics();
+    n_g_eval = 0;
+}
+
+void MultirateDSdeRungeKuttaIntegrator::disp_step_info(Real& t, Real& h)
+{
+    MultirateOdeRungeKuttaIntegrator::disp_step_info(t,h);
+}

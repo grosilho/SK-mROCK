@@ -2,12 +2,49 @@
 #include "DSdeProblems.h"
 
 DSdeDahlquistTestProblem::DSdeDahlquistTestProblem()
-:Ode(), DSde(), DahlquistTestProblem()       
+:DSde()
 {
-    Wsize = 1;
-    noise=DIAGONAL;
+    problem_name = "DSdeDahlquistTestProblem";
     
-    sigma  = 10.;//0.7*sqrt(2.*abs(lambda+xi));
+    tend=0.1;
+    
+    neqn=1;
+    cte_rho = true;
+    know_rho = true;
+    analytical_df=true;
+    dense_Jacobian=true;
+    
+    lambda = -100.;
+    mu = -10;
+    xi  = 0.7*sqrt(2.*abs(lambda+mu));
+
+    Wsize = 1;
+    noise=DIAGONAL;    
+}
+
+Real DSdeDahlquistTestProblem::lambda;
+Real DSdeDahlquistTestProblem::mu;
+Real DSdeDahlquistTestProblem::xi;
+
+void DSdeDahlquistTestProblem::set_initial_value(Vector& y0)
+{ 
+    y0(0)=1.;
+}
+
+void DSdeDahlquistTestProblem::f(Real t, Vector& x, Vector& fx)
+{   
+    fx(0) = (lambda+mu)*x(0);
+}
+
+void DSdeDahlquistTestProblem::AN_df(Real t, Vector& x, Matrix& dfx)
+{   
+    dfx.resize(neqn,neqn);
+    dfx(0,0) = lambda+mu;
+}
+
+void DSdeDahlquistTestProblem::rho(Real t, Vector& y, Real& eigmax)
+{
+    eigmax = abs(lambda+mu);
 }
 
 Real DSdeDahlquistTestProblem::phi(const Vector& X)
@@ -17,26 +54,57 @@ Real DSdeDahlquistTestProblem::phi(const Vector& X)
 
 void DSdeDahlquistTestProblem::g(Real t, Vector& x, Vector& G)
 {
-    G(0) = sigma*x(0);
+    G(0) = xi*x(0);
 }
 
 void DSdeDahlquistTestProblem::g(Real t, Vector& x, Vector& G, int r)
 {
-    G(0) = sigma*x(0);
+    G(0) = xi*x(0);
 }
 
 void DSdeDahlquistTestProblem::g(Real t, Vector& x, Matrix& G)
 {
-    G(0,0) = sigma*x(0);
+    G(0,0) = xi*x(0);
 }
 
 // -----------------------------------------------------------------------------
 
 DSdeScalarNonStiffNonLinearTest::DSdeScalarNonStiffNonLinearTest()
-:Ode(), DSde(), ScalarNonStiffNonLinearTest()       
+:DSde()
 {
+    problem_name = "DSdeScalarNonStiffNonLinearTest";
+    
+    tend=10.;
+    
+    neqn=1;
+    cte_rho = false;
+    know_rho = true;
+    analytical_df=true;
+    dense_Jacobian=true;
+
     Wsize = 1;
     noise=DIAGONAL;
+}
+
+void DSdeScalarNonStiffNonLinearTest::set_initial_value(Vector& y0)
+{ 
+    y0(0)=0.;
+}
+
+void DSdeScalarNonStiffNonLinearTest::f(Real t, Vector& x, Vector& fx)
+{   
+    fx(0) = 0.25*x(0)+0.5*sqrt(x(0)*x(0)+1.);
+}
+
+void DSdeScalarNonStiffNonLinearTest::AN_df(Real t, Vector& x, Matrix& dfx)
+{   
+    dfx.resize(neqn,neqn);
+    dfx(0,0) = 0.25+0.5*x(0)/sqrt(x(0)*x(0)+1);
+}
+
+void DSdeScalarNonStiffNonLinearTest::rho(Real t, Vector& y, Real& eigmax)
+{
+    eigmax = abs(0.25+0.5*y(0)/sqrt(y(0)*y(0)+1.))+1;
 }
 
 Real DSdeScalarNonStiffNonLinearTest::phi(const Vector& X)

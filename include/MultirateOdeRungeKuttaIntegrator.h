@@ -4,7 +4,7 @@
 #include "MainHeader.h"
 #include "OdeRungeKuttaIntegrator.h"
 
-class MultirateOdeRungeKuttaIntegrator: public OdeRungeKuttaIntegrator
+class MultirateOdeRungeKuttaIntegrator: public virtual OdeRungeKuttaIntegrator
 {
 public:
     MultirateOdeRungeKuttaIntegrator(Parameters* param_, MultirateOde* mode_);

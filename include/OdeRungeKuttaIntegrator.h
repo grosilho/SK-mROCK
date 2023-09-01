@@ -38,7 +38,7 @@ protected:
     Vector* yn;
     Vector* ynpu;
     Vector* eigenvector;
-    Vector* integr[5]; //working vectors
+    Vector* integr[8]; //working vectors
     Real t;
     Real tend;
     Real h;

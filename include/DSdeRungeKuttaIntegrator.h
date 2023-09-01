@@ -2,6 +2,7 @@
 #define DSDERUNGEKUTTAINTEGRATOR_H
 
 #include "OdeRungeKuttaIntegrator.h"
+#include "MultirateOdeRungeKuttaIntegrator.h"
 #include "DSde.h"
 #include "StochasticIntegrals.h"
 
@@ -32,6 +33,20 @@ protected:
     Matrix G;
     int n_g_eval;
     bool needDoubleIntegral;
+};
+
+class MultirateDSdeRungeKuttaIntegrator: public virtual DSdeRungeKuttaIntegrator, public virtual MultirateOdeRungeKuttaIntegrator
+{
+public:
+    MultirateDSdeRungeKuttaIntegrator(Parameters* param_, MultirateDSde* msde_);
+    virtual ~MultirateDSdeRungeKuttaIntegrator();
+
+    void print_integration_info();
+
+protected:
+    MultirateDSde* msde; 
+    void reinit_statistics();
+    void disp_step_info(Real& t, Real& h);
 };
 
 #endif /* DSDERUNGEKUTTAINTEGRATOR_H */

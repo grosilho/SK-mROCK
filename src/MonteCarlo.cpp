@@ -81,7 +81,6 @@ void MonteCarlo::convergence_test()
     vector<Vector> strong_error_MC(param.MCiter,Vector::Zero(param.max_pow-param.min_pow+1));
     vector<Vector> weak_error_MC(param.MCiter,Vector::Zero(param.max_pow-param.min_pow+1));
     
-    
     #ifdef _OPENMP
     unsigned int num_threads = omp_get_max_threads();
     #else
@@ -100,7 +99,7 @@ void MonteCarlo::convergence_test()
         Real refphi;
         HistoryStochasticIntegrals hsi(sde->brownian_size(),param.continuous,
                              integrator->need_double_integral(),sde->get_noise_type(),param.seed);
-        //schedule(dynamic, 10)
+
         #pragma omp for schedule(dynamic, 10)
         for(unsigned int mc=0;mc<param.MCiter;mc++)
         {

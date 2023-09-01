@@ -180,130 +180,54 @@ Real ChebyshevMethods::ls_SKROCK(unsigned int s, Real eps)
     return ls_RKC1(s,eps);
 }
 
-void ChebyshevMethods::CoefficientsRKU1(vector<Real>& mu, vector<Real>& nu, 
-                       vector<Real>& kappa, vector<Real>& c, vector<Real>& d,
-                       unsigned int s, Real eps)
+void ChebyshevMethods::CoefficientsRKC1mod(vector<Real>& mu, vector<Real>& nu, 
+                       vector<Real>& kappa, Real& theta, vector<Real>& c, unsigned int s, Real eps)
 {
     mu.resize(s);
     nu.resize(s);
     kappa.resize(s);
     c.resize(s);
-    d.resize(s);
+    int r = s/2;
     
-    Real w0 = 1.+3.*eps/(s*(s+1.)*(s+2.));
-    Real w1 = U(w0,s)/dU(w0,s);
+    Real w0 = 1.+eps/s/s;
+    Real w1 = T(w0,s)/dT(w0,s);
     
     Real bjm2,bjm1,bj;
     
-    bjm1 = 1./(2.*w0); // = 1/U(w0,1)
+    bjm1 = 1./w0; // = 1/T(w0,1)
     mu[0] = w1/w0;
+    nu[0] = s*w1/2.;
+    kappa[0] = s*w1/w0;
     c[0] = mu[0];
-    d[0] = 0;
+    theta = T(w0,r)/(2.*w1*dT(w0,r));
     
-    Real Ujw0,Ujm1w0,Ujm2w0;
-    Ujm2w0=1.;
-    Ujm1w0=2.*w0;
+    Real Tjw0,Tjm1w0,Tjm2w0;
+    Tjm2w0=1;
+    Tjm1w0=w0;
     
     for(unsigned int j=2;j<=s;j++)
     {
-        Ujw0 = 2.*w0*Ujm1w0-Ujm2w0;
-        bj = 1./Ujw0;
+        Tjw0 = 2.*w0*Tjm1w0-Tjm2w0;
+        bj = 1./Tjw0;
         mu[j-1] = 2*w1*bj/bjm1;
         nu[j-1] = 2*w0*bj/bjm1;
         if(j>2)
         {
             kappa[j-1] = -bj/bjm2;
             c[j-1] = mu[j-1]+nu[j-1]*c[j-2]+kappa[j-1]*c[j-3];
-            d[j-1] = 2*mu[j-1]*c[j-2]+nu[j-1]*d[j-2]+kappa[j-1]*d[j-3];
         }
         else
         {
             kappa[j-1]=-bj;
             c[j-1] = mu[j-1]+nu[j-1]*c[j-2];
-            d[j-1] = 2*mu[j-1]*c[j-2];
         }
         
         bjm2 = bjm1;
         bjm1 = bj;
         
-        Ujm2w0 = Ujm1w0;
-        Ujm1w0 = Ujw0;
+        Tjm2w0 = Tjm1w0;
+        Tjm1w0 = Tjw0;
     }
-}
-
-Real ChebyshevMethods::ls_RKU1(unsigned int s, Real eps)
-{
-    Real w0 = 1.+3.*eps/(s*(s+1.)*(s+2.));
-    Real w1 = U(w0,s)/dU(w0,s);
-    return 2.*w0/w1;
-}
-
-void ChebyshevMethods::CoefficientsRKU2(vector<Real>& mu, vector<Real>& nu, 
-                       vector<Real>& kappa, vector<Real>& gamma, vector<Real>& c,
-                       unsigned int s, Real eps)
-{
-    mu.resize(s,0.);
-    nu.resize(s,0.);
-    kappa.resize(s,0.);
-    gamma.resize(s,0.);
-    c.resize(s,0.);
-    
-    Real w0 = 1.+3.*eps/(s*(s+1.)*(s+2.));
-    Real w1 = dU(w0,s)/ddU(w0,s);
-    
-    Real bjm2,bjm1,bj;
-    Real Ujw0,Ujm1w0,Ujm2w0;
-    Real dUjw0,dUjm1w0,dUjm2w0;
-    Real ddUjw0,ddUjm1w0,ddUjm2w0;
-    Ujm2w0=1.;
-    Ujm1w0=2*w0;
-    dUjm2w0=0.;
-    dUjm1w0=2.;
-    ddUjm2w0=0.;
-    ddUjm1w0=0.;
-    
-    for(unsigned int j=2;j<=s;j++)
-    {
-        Ujw0 = 2.*w0*Ujm1w0-Ujm2w0;
-        dUjw0 = 2.*w0*dUjm1w0-dUjm2w0+2.*Ujm1w0;
-        ddUjw0 = 2.*w0*ddUjm1w0-ddUjm2w0+4.*dUjm1w0;
-        
-        bj = ddUjw0/dUjw0/dUjw0;
-        
-        if(j==2)
-        {
-            bjm1=bj;
-            bjm2=bj;
-            mu[0]=2.*bjm1*w1;
-            c[0]=mu[0];
-        }
-        
-        mu[j-1] = 2*w1*bj/bjm1;
-        nu[j-1] = 2*w0*bj/bjm1;
-        kappa[j-1] = -bj/bjm2;
-        gamma[j-1] = -(1.-bjm1*Ujm1w0)*mu[j-1];
-        
-        if(j>2)
-            c[j-1] = mu[j-1]+gamma[j-1]+nu[j-1]*c[j-2]+kappa[j-1]*c[j-3];
-        else// j==2
-            c[j-1] = mu[j-1]+gamma[j-1]+nu[j-1]*c[j-2];
-        
-        bjm2 = bjm1;
-        bjm1 = bj;
-        Ujm2w0 = Ujm1w0;
-        Ujm1w0 = Ujw0;
-        dUjm2w0 = dUjm1w0;
-        dUjm1w0 = dUjw0;
-        ddUjm2w0 = ddUjm1w0;
-        ddUjm1w0 = ddUjw0;
-    }
-}
-
-Real ChebyshevMethods::ls_RKU2(unsigned int s, Real eps)
-{
-    Real w0 = 1.+3.*eps/(s*(s+1.)*(s+2.));
-    Real w1 = dU(w0,s)/ddU(w0,s);
-    return 2.*w0/w1;
 }
 
 Real ChebyshevMethods::T(Real x, unsigned int s)

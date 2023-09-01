@@ -3,8 +3,9 @@
 #include "StabilizedOdeRungeKuttaIntegrators.h"
 #include "ClassicalDSdeRungeKuttaIntegrators.h"
 #include "StabilizedDSdeRungeKuttaIntegrators.h"
-#include "DSdeProblems.h"
+#include "MultirateDSdeProblems.h"
 #include <GetPot>
+#include <filesystem>
 
 
 Parameters::Parameters()
@@ -20,7 +21,7 @@ Parameters::~Parameters()
 bool Parameters::initDSde(DSde*& sde)
 {
     if(ntest==1)
-        sde = new DSdeDahlquistTestProblem();
+        sde = new MultirateDSdeDahlquistTestProblem();
     else if(ntest==2)
         sde = new DSdeScalarNonStiffNonLinearTest();
     else if(ntest==3)
@@ -45,11 +46,18 @@ bool Parameters::initDSde(DSde*& sde)
     
     #pragma omp single
     {
-    output_path = "../results/" + sde->get_problem_name() + "/" + output_file;
-    if(refsol_file.compare(string(""))!=0)
-        refsol_path = "../results/" + sde->get_problem_name() + "/" + refsol_file;
+        if (!std::filesystem::is_directory("../results/"))
+        std::filesystem::create_directory("../results/");
     
-    problem_size = sde->get_system_size();
+        string output_dir = "../results/" +sde->get_problem_name();
+        if (!std::filesystem::is_directory(output_dir))
+            std::filesystem::create_directory(output_dir);
+            
+        output_path = "../results/" + sde->get_problem_name() + "/" + output_file;
+        if(refsol_file.compare(string(""))!=0)
+            refsol_path = "../results/" + sde->get_problem_name() + "/" + refsol_file;
+        
+        problem_size = sde->get_system_size();
     }
     
     return true;
@@ -63,6 +71,16 @@ bool Parameters::initDSdeTimeIntegrator(DSdeRungeKuttaIntegrator*& rk, DSde* sde
         rk = new PlatenScheme(this,sde);
     else if(rk_name=="SKROCK")
         rk = new SKROCK(this,sde);
+    else if(rk_name=="SKmROCK")
+    {
+        if(sde->is_multirate())
+            rk = new SKmROCK(this,dynamic_cast<MultirateDSde*>(sde));
+        else
+        {
+            cout<<"ERROR: you cant use the multirate integrator "<<rk_name<<" with the non multirate problem "<<sde->get_problem_name()<<endl;
+            return false;
+        }
+    }
     else
     {
         cout<<"Integrator "<<rk_name<<" not known."<<endl;

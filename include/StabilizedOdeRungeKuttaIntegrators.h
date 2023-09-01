@@ -6,7 +6,7 @@
 #include "OdeRungeKuttaIntegrator.h"
 #include "MultirateOdeRungeKuttaIntegrator.h"
 
-class mRKC: public MultirateOdeRungeKuttaIntegrator
+class mRKC: public virtual MultirateOdeRungeKuttaIntegrator
 {
 public:
     mRKC(Parameters* param_, MultirateOde* mode_);

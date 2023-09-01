@@ -27,7 +27,10 @@ add_library(dsde DSde.cpp)
 target_link_libraries(dsde PUBLIC ode stochastic_integrals)
 
 add_library(dsde_problems DSdeProblems.cpp)
-target_link_libraries(dsde_problems PUBLIC dsde ode_problems)
+target_link_libraries(dsde_problems PUBLIC dsde)
+
+add_library(multiratedsde_problems MultirateDSdeProblems.cpp)
+target_link_libraries(multiratedsde_problems PUBLIC dsde)
 
 # Others
 add_library(parameters Parameters.cpp)
@@ -35,6 +38,7 @@ target_include_directories(parameters PUBLIC ../include/getpot)
 target_link_libraries(parameters PUBLIC 
                             stabilized_dsde_rungekutta_integrator
                             dsde_problems
+                            multiratedsde_problems
                             multirate_ode_rungekutta_integrator
                             classical_dsde_rungekutta_integrator
                             )

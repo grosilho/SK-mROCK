@@ -26,6 +26,13 @@ protected:
     
 };
 
+class MultirateDSde: public virtual DSde, public virtual MultirateOde
+{
+public:
+    MultirateDSde();
+    virtual ~MultirateDSde();
+};
+
 #endif	/* SDE_H */
 
 // For diagonal noise

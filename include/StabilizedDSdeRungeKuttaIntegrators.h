@@ -15,5 +15,19 @@ public:
     void update_n_stages_and_h(Real& h);
 };
 
+class SKmROCK: public virtual MultirateDSdeRungeKuttaIntegrator, public virtual mRKC
+{
+public:
+    SKmROCK(Parameters* param_, MultirateDSde* msde_);
+    virtual ~SKmROCK();
+
+protected:    
+    void g_eta(Real t, Vector& x, Vector& gx);
+    void step(const Real t, const Real& h);    
+    void update_n_stages_and_h(Real& h);      
+    virtual void disp_step_info(Real& t, Real& h);
+
+};
+
 #endif /* STABILIZEDDSDERUNGEKUTTAINTEGRATORS_H */
 

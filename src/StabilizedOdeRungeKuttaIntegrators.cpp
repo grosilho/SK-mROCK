@@ -3,7 +3,7 @@
 
 
 mRKC::mRKC(Parameters* param_, MultirateOde* mode_)
-:MultirateOdeRungeKuttaIntegrator(param_,mode_)
+:OdeRungeKuttaIntegrator(param_,mode_), MultirateOdeRungeKuttaIntegrator(param_,mode_)
 {
     Astable = false;
     

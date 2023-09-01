@@ -2,31 +2,44 @@
 #define	SDEPROBLEMS_H
 
 #include "DSde.h"
-#include "OdeProblems.h"
 
 // test equation
-class DSdeDahlquistTestProblem: public DSde, public DahlquistTestProblem
+class DSdeDahlquistTestProblem: public virtual DSde
 {
 public:
     DSdeDahlquistTestProblem();
     virtual ~DSdeDahlquistTestProblem(){};
+
+    void set_initial_value(Vector& y0);
+    void f(Real t, Vector& x, Vector& fx);
+    
+    void rho(Real t, Vector& y, Real& eigmax);
+    void AN_df(Real t, Vector& x, Matrix& dfx); 
  
     void g(Real t, Vector& x, Vector& G);
     void g(Real t, Vector& x, Vector& G, int r);
     void g(Real t, Vector& x, Matrix& G);
         
-    Real phi(const Vector& X);
+    virtual Real phi(const Vector& X);
     
 protected:
-    Real sigma;
+    static Real lambda;
+    static Real mu;
+    static Real xi;
 };
 
 // Sde One dimensional test 1 from SROCK2 paper
-class DSdeScalarNonStiffNonLinearTest: public DSde, public ScalarNonStiffNonLinearTest
+class DSdeScalarNonStiffNonLinearTest: public DSde
 {
 public:
     DSdeScalarNonStiffNonLinearTest();
     virtual ~DSdeScalarNonStiffNonLinearTest(){};
+
+    void set_initial_value(Vector& y0);
+    void f(Real t, Vector& x, Vector& fx);
+    
+    void rho(Real t, Vector& y, Real& eigmax);
+    void AN_df(Real t, Vector& x, Matrix& dfx); 
  
     void g(Real t, Vector& x, Vector& G);
     void g(Real t, Vector& x, Vector& G, int r);

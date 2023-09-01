@@ -4,7 +4,7 @@
 #include <fstream>
 
 #include "OdeRungeKuttaIntegrator.h"
-#include "ClassicalOdeRungeKuttaIntegrators.h"
+#include "StabilizedOdeRungeKuttaIntegrators.h"
 
 OdeRungeKuttaIntegrator::OdeRungeKuttaIntegrator(Parameters* param_, Ode* ode_)
 :TimeIntegrator(param_,ode_)
@@ -14,7 +14,7 @@ OdeRungeKuttaIntegrator::OdeRungeKuttaIntegrator(Parameters* param_, Ode* ode_)
     eigenvector = new Vector(ode->get_system_size());
     *eigenvector = Vector::Random(ode->get_system_size());
     
-    for(int i=0;i<5;i++)
+    for(int i=0;i<8;i++)
         integr[i]=new Vector(ode->get_system_size());
                 
     Astable = false; //default
@@ -34,7 +34,7 @@ OdeRungeKuttaIntegrator::OdeRungeKuttaIntegrator(Parameters* param_, Ode* ode_)
     delete yn;
     delete ynpu;
     delete eigenvector;
-    for(int i=0;i<5;i++)
+    for(int i=0;i<8;i++)
         delete integr[i];
 }
 
@@ -256,7 +256,7 @@ void OdeRungeKuttaIntegrator::convergence_test()
         cout<<"Computing a reference solution on the fly..."<<endl;
         verbose=true;
         param->dt = tend/pow(2,param->max_pow+2);
-        TimeIntegrator* refintegrator = new RungeKutta4(param,ode);
+        TimeIntegrator* refintegrator = new RKC1(param,ode);
         refintegrator->integrate();
         refsol = refintegrator->solution();
         delete refintegrator;
