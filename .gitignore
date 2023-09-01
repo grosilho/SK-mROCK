@@ -30,3 +30,12 @@
 *.exe
 *.out
 *.app
+
+# Files
+.DS_Store
+
+#Folders
+build
+.vscode
+
+

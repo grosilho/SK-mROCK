@@ -1,0 +1,92 @@
+% Plot solutions Van Der Pol
+clear;
+clc;
+% close all;
+
+iter = 1;
+n_threads = 4;
+
+folder = '../../Results/Tests/OneDimHodgkinHuxley/';
+refsol_name = 'RKC1';
+sol_name = 'RKC1';
+ref_file_name = [folder refsol_name '_evolution.m'];
+
+run(ref_file_name);
+
+V_ref = y(:,1);
+n_ref = y(:,2);
+m_ref = y(:,3);
+h_ref = y(:,4);
+t_ref = t;
+clear y t;
+
+% plot first coarse guess
+figure;
+file_name = [folder refsol_name '_evolution_out_sol_iter_' num2str(0) '.m'];
+run(file_name);
+V_outer = y(:,1);
+n_outer = y(:,2);
+m_outer = y(:,3);
+h_outer = y(:,4);
+t_outer = t;
+clear y t;
+
+subplot(iter+1,4,1);
+plot(t_ref,V_ref,'k');
+hold on;
+plot(t_outer,V_outer,'ro');
+subplot(iter+1,4,2);
+plot(t_ref,n_ref,'k');
+hold on;
+plot(t_outer,n_outer,'ro');
+subplot(iter+1,4,3);
+plot(t_ref,m_ref,'k');
+hold on;
+plot(t_outer,m_outer,'ro');
+subplot(iter+1,4,4);
+plot(t_ref,h_ref,'k');
+hold on;
+plot(t_outer,h_outer,'ro');
+
+for k=1:iter
+    file_name = [folder refsol_name '_evolution_out_sol_iter_' num2str(k) '.m'];
+    run(file_name);
+    V_outer = y(:,1);
+    n_outer = y(:,2);
+    m_outer = y(:,3);
+    h_outer = y(:,4);
+    t_outer = t;
+    clear y t;
+
+    subplot(iter+1,4,4*k+1);
+    plot(t_ref,V_ref,'k');
+    hold on;
+    plot(t_outer,V_outer,'ro');
+    subplot(iter+1,4,4*k+2);
+    plot(t_ref,n_ref,'k');
+    hold on;
+    plot(t_outer,n_outer,'ro');
+    subplot(iter+1,4,4*k+3);
+    plot(t_ref,m_ref,'k');
+    hold on;
+    plot(t_outer,m_outer,'ro');
+    subplot(iter+1,4,4*k+4);
+    plot(t_ref,h_ref,'k');
+    hold on;
+    plot(t_outer,h_outer,'ro');
+
+    for n=1:n_threads
+        file_name = [folder refsol_name '_evolution_in_sol_iter_' num2str(k)  '.m'];
+        run(file_name);
+        V_outer = y(:,1);
+        n_outer = y(:,2);
+        m_outer = y(:,3);
+        h_outer = y(:,4);
+        t_outer = t;
+        clear y t;
+
+    end
+end
+
+
+
