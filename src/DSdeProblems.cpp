@@ -2,7 +2,7 @@
 #include "DSdeProblems.h"
 
 DSdeDahlquistTestProblem::DSdeDahlquistTestProblem()
-:DSde()
+:Ode(), DSde()
 {
     problem_name = "DSdeDahlquistTestProblem";
     
@@ -70,7 +70,7 @@ void DSdeDahlquistTestProblem::g(Real t, Vector& x, Matrix& G)
 // -----------------------------------------------------------------------------
 
 DSdeScalarNonStiffNonLinearTest::DSdeScalarNonStiffNonLinearTest()
-:DSde()
+:Ode(), DSde()
 {
     problem_name = "DSdeScalarNonStiffNonLinearTest";
     
@@ -135,24 +135,25 @@ ManyDiffusionTerms::ManyDiffusionTerms()
     
     tend=1.;
     
-    neqn=1;
+    neqn=7;
     Wsize = 10;
-    noise=GENERAL;
+    noise = GENERAL;
     
-    cte_rho = true;
-    know_rho = true;
+    cte_rho = false;
+    know_rho = false;
     
-    a.resize(Wsize);
-    b.resize(Wsize);
-    a<< 10., 15., 20., 25., 40., 25., 20., 15., 20., 25.;
-    b<< 2., 4., 5., 10., 20., 2., 4., 5., 10., 20.;
-    
-    for(int i=0;i<Wsize;i++)
-    {
-        a(i)=1./a(i);
-        b(i)=1./b(i);
-    }
-    
+    R.resize(Wsize);
+    c.resize(Wsize);
+    c<< 0.0078, 0.043, 0.0039, 0.0007, 0.38, 3, 0.5, 5, 0.12, 9;
+
+    Nu.resize(neqn,Wsize);
+    Nu << 1.,0.,0.,0.,-1.,1.,0.,0.,-1.,1.,
+        -1.,0.,0.,0.,1.,-1.,0.,0.,0.,0.,
+         1.,0.,-1.,0.,0.,0.,0.,0.,0.,0.,
+         1.,0.,0.,0.,-1.,1.,0.,0.,0.,0.,
+         0.,1.,0.,-1.,0.,0.,-2.,2.,0.,0.,
+         0.,0.,0.,0.,0.,0,1.,-1.,-1.,1.,
+         0.,0.,0.,0.,0.,0.,0.,0.,1.,-1.;    
 }
 
 ManyDiffusionTerms::~ManyDiffusionTerms()
@@ -161,29 +162,28 @@ ManyDiffusionTerms::~ManyDiffusionTerms()
 
 void ManyDiffusionTerms::set_initial_value(Vector& y0)
 {    
-    y0(0)=1.;
+    y0.resize(neqn);
+    y0<<0.,1.,0.,30.,0.,0.,0.;
+    y0 *= 5000.;
 }
 
-void ManyDiffusionTerms::f(Real t, Vector& x, Vector& fx)
+void ManyDiffusionTerms::f(Real t, Vector& X, Vector& fx)
 {   
-    fx(0) = x(0);
+    R << X(1),X(2),X(2),X(4),X(0)*X(3),X(1),X(4)*(X(4)-1)/2,X(5),X(0)*X(5),X(6);
+    fx = Nu*(c.cwiseProduct(R));
 }
 
-void ManyDiffusionTerms::analytical_df(Real t, Vector& x, Matrix& dfx)
-{
-    dfx.resize(neqn,neqn);
-    dfx(0,0) = 1.;
-}
-
-void ManyDiffusionTerms::g(Real t, Vector& x, Vector& G, int r)
+void ManyDiffusionTerms::g(Real t, Vector& X, Vector& G, int r)
 {   
-    G(0) = a(r-1)*sqrt(x(0)+b(r-1));
+    R << X(1),X(2),X(2),X(4),X(0)*X(3),X(1),X(4)*(X(4)-1)/2,X(5),X(0)*X(5),X(6);
+    G = Nu.col(r)*sqrt(abs(c(r)*R(r)));
 }
 
-void ManyDiffusionTerms::g(Real t, Vector& x, Matrix& G)
+void ManyDiffusionTerms::g(Real t, Vector& X, Matrix& G)
 {
-    for(int r=0;r<Wsize;r++)
-        G(0,r) = a(r)*sqrt(x(0)+b(r));
+    R << X(1),X(2),X(2),X(4),X(0)*X(3),X(1),X(4)*(X(4)-1)/2,X(5),X(0)*X(5),X(6);
+    D.diagonal() << c.cwiseProduct(R).cwiseAbs().cwiseSqrt();
+    G = Nu*D;
 }
 
 Real ManyDiffusionTerms::phi(const Vector& X)
@@ -191,307 +191,42 @@ Real ManyDiffusionTerms::phi(const Vector& X)
     return X(0)*X(0);
 }
 
-void ManyDiffusionTerms::rho(Real t, Vector& y, Real& eigmax)
-{
-    eigmax = 1.;
-}
 
-/*
-SdeOneDimensionalTest3::SdeOneDimensionalTest3(string output_file)
-:Ode(string("Tests/SdeOneDimensionalTest3/")+output_file),
- Sde(string("Tests/SdeOneDimensionalTest3/")+output_file)
+StochasticBrusselator::StochasticBrusselator()
+: Ode(), DSde()
 {
-    neqn = 1;
-    Wsize = 1;
+    problem_name = "StochasticBrusselator";
     
-    noise=DIAGONAL;
+    tend=40.0;
     
+    neqn=2;
     cte_rho = false;
-    know_rho = true;
-    cte_df=false;
-    stiff=false;
-    
-    y0=0.;
-    t0=0.0;
-    tend=1.0;
-    t=t0;
-    
-    y = new Vector(neqn);
-    
-    init_solution();
-//    output_solution();
-}
+    know_rho = false;
+    analytical_df=false;
+    dense_Jacobian=true;
 
-void SdeOneDimensionalTest3::init_solution()
-{    
-    (*y)(0)=y0;
-}
-
-void SdeOneDimensionalTest3::f(Real t, Vector& x, Vector& fx)
-{   
-    Real co = cos(x(0));
-    fx(0) = -sin(x(0))*co*co*co;
-}
-
-void SdeOneDimensionalTest3::g(Real t, Vector& x, Vector& gx)
-{
-    Real co = cos(x(0));
-    gx(0) = co*co;
-}
-
-Real SdeOneDimensionalTest3::phi()
-{
-    return tan((*y)(0))*tan((*y)(0));
-}
-
-Real SdeOneDimensionalTest3::Exact_phi()
-{
-    return tan(y0)*tan(y0)+tend;
-}
-
-void SdeOneDimensionalTest3::rho(Real& eigmax)
-{
-    Real co = cos((*y)(0));
-    eigmax = abs( co*co*(2.*cos(2*(*y)(0))-1.));
-}
-
-SdeOneDimensionalTest4::SdeOneDimensionalTest4(string output_file)
-:Ode(string("Tests/SdeOneDimensionalTest4/")+output_file),
- Sde(string("Tests/SdeOneDimensionalTest4/")+output_file)
-{
-    neqn = 1;
     Wsize = 1;
-    
-    noise=DIAGONAL;
-    
-    cte_rho = false;
-    know_rho = true;
-    cte_df=false;
-    stiff=true;
-    
-    t0=0.0;
-    tend=1.0;
-    t=t0;
-    alpha = 0.5;
-    
-    y = new Vector(neqn);
-    
-    init_solution();
-//    output_solution();
-}
-
-void SdeOneDimensionalTest4::init_solution()
-{    
-    (*y)(0)=1.;
-}
-
-void SdeOneDimensionalTest4::f(Real t, Vector& x, Vector& fx)
-{   
-    Real eps = 1e-10;
-    if(t<alpha)
-        fx(0)=0.;
-    else
-        fx(0) = 0.5*x(0)/sqrt(t-alpha+eps);
-}
-
-void SdeOneDimensionalTest4::g(Real t, Vector& x, Vector& gx)
-{
-    gx(0) = x(0);
-}
-
-Real SdeOneDimensionalTest4::phi()
-{
-    return (*y)(0);
-}
-
-Real SdeOneDimensionalTest4::Exact_phi()
-{
-    return exp(sqrt(tend-alpha));
-}
-
-void SdeOneDimensionalTest4::rho(Real& eigmax)
-{
-    Real eps = 1e-10;
-    if(t<alpha)
-        eigmax=1.;
-    else
-        eigmax = 0.5/sqrt(t-alpha+eps);
-}
-
-TwoDimensionalSinCos::TwoDimensionalSinCos(string output_file)
-:Ode(string("Tests/TwoDimensionalSinCos/")+output_file),
- Sde(string("Tests/TwoDimensionalSinCos/")+output_file)
-{
-    neqn = 2;
-    Wsize = 2;
-    
     noise=GENERAL;
     
-    cte_rho = true;
-    know_rho = true;
-    cte_df=true;
-    stiff=false;
-    
-    t0=0.0;
-    tend=1.0;
-    t=t0;
-    
-    y = new Vector(neqn);
-    
-    init_solution();
-//    output_solution();
-}
-
-void TwoDimensionalSinCos::init_solution()
-{    
-    (*y)(0)=1.;
-    (*y)(1)=1.;
-}
-
-void TwoDimensionalSinCos::f(Real t, Vector& x, Vector& fx)
-{   
-    fx(0)=-x(1);
-    fx(1)=x(0);
-}
-
-void TwoDimensionalSinCos::g(Real t, Vector& x, Matrix& G)
-{
-    G(0,0) = 0.;
-    G(1,0) = sin(x(0)+x(1))/sqrt(1.+t);
-    
-    G(0,1) = cos(x(0)+x(1))/sqrt(1.+t);
-    G(1,1) = 0.;
-}
-
-void TwoDimensionalSinCos::g(Real t, Vector& x, Vector& G, int r)
-{
-    if(r==0)
-    {
-        G(0) = 0.;
-        G(1) = sin(x(0)+x(1))/sqrt(1.+t);
-    }
-    else if(r==1)
-    {
-        G(0) = cos(x(0)+x(1))/sqrt(1.+t);
-        G(1) = 0.;
-    }
-    else
-        cout<<"Error in computing diffusion"<<endl;
-}
-
-Real TwoDimensionalSinCos::phi()
-{
-    return (*y)(0)*(*y)(0)+(*y)(1)*(*y)(1);
-}
-
-Real TwoDimensionalSinCos::Exact_phi()
-{
-    return 2.+log(1.+tend);
-}
-
-void TwoDimensionalSinCos::rho(Real& eigmax)
-{
-    eigmax= 1.;
-}
-
-
-DuffingVanDerPol::DuffingVanDerPol(string output_file)
-:Ode(string("Tests/DuffingVanDerPol/")+output_file),
- Sde(string("Tests/DuffingVanDerPol/")+output_file)
-{
-    neqn = 2;
-    Wsize = 1;
-    
-    noise=GENERAL;
-    
-    cte_rho = false;
-    know_rho = true;
-    cte_df=false;
-    stiff=false;
-    
-    t0=0.0;
-    tend=8.0;
-    t=t0;
-    
-    alpha = 1.;
+    alpha = 1.9;
     sigma = 1.;
-    
-    y = new Vector(neqn);
-    
-    init_solution();
-//    output_solution();
 }
 
-void DuffingVanDerPol::init_solution()
+void StochasticBrusselator::set_initial_value(Vector& y0)
 {    
-    (*y)(0)=-3.;
-    (*y)(1)=0.;
+    y0(0)= -0.1;
+    y0(1)= 0;
 }
 
-void DuffingVanDerPol::f(Real t, Vector& x, Vector& fx)
+void StochasticBrusselator::f(Real t, Vector& x, Vector& fx)
 {   
-    fx(0)= x(1);
-    fx(1)= x(0)*(alpha-x(0)*x(0))-x(1);
+    fx(0) = (alpha-1.)*x(0)+alpha*x(0)*x(0)+(x(0)+1.)*(x(0)+1.)*x(1);
+    fx(1) = -alpha*x(0)-alpha*x(0)*x(0)-(x(0)+1.)*(x(0)+1.)*x(1);
 }
 
-void DuffingVanDerPol::g(Real t, Vector& x, Matrix& G)
+Real StochasticBrusselator::phi(const Vector& X)
 {
-    G(0,0) = 0.;
-    G(1,0) = sigma*x(0);
-}
-
-void DuffingVanDerPol::g(Real t, Vector& x, Vector& G, int r)
-{
-    if(r==0)
-    {
-        G(0) = 0.;
-        G(1) = sigma*x(0);
-    }
-    else
-        cout<<"Error in computing diffusion"<<endl;
-}
-
-Real DuffingVanDerPol::phi()
-{
-    return (*y)(0)*(*y)(0)+(*y)(1)*(*y)(1);
-}
-
-Real DuffingVanDerPol::Exact_phi()
-{
-    //reference solution
-    //1e9 iterations, dt=1e-2
-    return 1.00997637240578;
-}
-
-void DuffingVanDerPol::rho(Real& eigmax)
-{
-    if(4.*alpha-12*(*y)(0)*(*y)(0)+1.>=0)
-        eigmax = 0.5*(1.+sqrt(4.*alpha-12*(*y)(0)*(*y)(0)+1.));
-    else
-        eigmax = 0.5*sqrt(-4*alpha+12*(*y)(0)*(*y)(0));
-}
-
-StochasticBrusselator::StochasticBrusselator(string output_file)
-:Ode(string("Tests/StochasticBrusselator/")+output_file),
- Sde(string("Tests/StochasticBrusselator/")+output_file),
- Brusselator(string("Tests/StochasticBrusselator/")+output_file)       
-{
-    Wsize = 1;
-    noise=GENERAL;
-    
-    sigma = 0.1;
-    
-    //init solution in other class
-}
-
-Real StochasticBrusselator::phi()
-{
-    return (*y)(0)+(*y)(1);
-}
-
-Real StochasticBrusselator::Exact_phi()
-{
-    return 0.;
+    return X(0)+X(1);
 }
 
 void StochasticBrusselator::g(Real t, Vector& x, Vector& G, int r)
@@ -509,66 +244,62 @@ void StochasticBrusselator::g(Real t, Vector& x, Matrix& G)
     G(1,0) = -sigma*x(0)*(1.+x(0));
 }
 
-
-StochasticPopulationDynamics::StochasticPopulationDynamics(string output_file)
-:Ode(string("Tests/StochasticPopulationDynamics/")+output_file),
- Sde(string("Tests/StochasticPopulationDynamics/")+output_file),
- PopulationDynamics(string("Tests/StochasticPopulationDynamics/")+output_file)
+StochasticNeuronCable::StochasticNeuronCable()
+:Ode(), DSde()      
 {
-    Wsize = 1;
+    problem_name = "StochasticNeuronCable";
     
-    noise=GENERAL;
-    
-    mu1 = sqrt(abs(lambda1));
-    mu2 = 1.;
-}
-
-void StochasticPopulationDynamics::g(Real t, Vector& x, Matrix& G)
-{
-    G(0,0) = -mu1*x(0)*(1.-x(0));
-    G(1,0) = -mu2*x(1)*(1.-x(1));
-}
-
-void StochasticPopulationDynamics::g(Real t, Vector& x, Vector& gx, int r)
-{
-    gx(0) = -mu1*x(0)*(1.-x(0));
-    gx(1) = -mu2*x(1)*(1.-x(1));
-}
-
-Real StochasticPopulationDynamics::phi()
-{
-    return (*y)(0)+(*y)(1);
-}
-
-Real StochasticPopulationDynamics::Exact_phi()
-{
-    return 1.9990206435918350;
-}
-
-
-StochasticNeuronCable::StochasticNeuronCable(string output_file)
-:Ode(string("Tests/StochasticNeuronCable/")+output_file),
- Sde(string("Tests/StochasticNeuronCable/")+output_file),
- NeuronCable(string("Tests/StochasticNeuronCable/")+output_file)       
-{
-    Wsize = 128;
-    noise=DIAGONAL;
-    
-    sigma = 4e-3;
+    tend=10.;
+    nu = 0.01;
+    beta= 1.0;
+    sigma = 0.5;
     V0 = 10.;
     
-    //init solution in other class
+    neqn=128;
+    cte_rho = true;
+    know_rho = true;
+    analytical_df=false;
+    dense_Jacobian=false;
+
+    Wsize = 128;
+    noise=DIAGONAL;
 }
 
-Real StochasticNeuronCable::phi()
+StochasticNeuronCable::~StochasticNeuronCable()
 {
-    return y->sum();
-//    return accu(*y);
 }
 
-Real StochasticNeuronCable::Exact_phi()
+void StochasticNeuronCable::set_initial_value(Vector& y0)
+{    
+    const Real pi=4.*atan(1.);
+    for (int j=0;j<neqn;j++)
+    {
+        Real x=((Real)j)/(neqn-1.);
+        y0(j)=-70.+20.*cos(15.*pi*x)*(1.-x);
+    }
+}
+
+void StochasticNeuronCable::f(Real t, Vector& x, Vector& fx)
+{   
+    // Computing diffusion with Neumann bnd conditions
+    fx(0)=nu*2.*(x(1)-x(0))*(neqn-1.)*(neqn-1.)-beta*x(0);
+    fx(neqn-1)=nu*2.*(x(neqn-2)-x(neqn-1))*(neqn-1.)*(neqn-1.)-beta*x(neqn-1);
+    for (int i=1;i<neqn-1;i++)
+    {
+        fx(i)=nu*(x(i-1)-2.*x(i)+x(i+1))*(neqn-1.)*(neqn-1.)-beta*x(i);
+        if(abs(i/(neqn-1.)-0.5)<0.1)
+            fx(i) += 5.*exp(1.-1e-2/(1e-2-(i/(neqn-1.)-0-5)*(i/(neqn-1.)-0.5)));
+    }
+}
+
+void StochasticNeuronCable::rho(Real t, Vector& y, Real& eigmax)
 {
-    return -3.050088673263552e+03;
+    eigmax = nu*4.*(neqn-1)*(neqn-1)+beta;
+}
+
+Real StochasticNeuronCable::phi(const Vector& X)
+{
+    return X.sum();
 }
 
 void StochasticNeuronCable::g(Real t, Vector& x, Vector& G)
@@ -578,4 +309,3 @@ void StochasticNeuronCable::g(Real t, Vector& x, Vector& G)
     for(int i=0;i<neqn;i++)
         G(i)=sigma*(x(i)+V0)/sqrtdx;
 }
- */

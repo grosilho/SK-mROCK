@@ -14,6 +14,7 @@ int main(int argc, char** argv)
     params.rk_name = "SKROCK";     //name of the solver
     params.dt = 1e-2;            //step size, or starting step size in case dtadap=true.
     params.rho_freq = 5;        //estimation of the spectral radius every rho_freq steps
+     params.safe_add = 1; 
     
     params.output_file = "sol"; //output file name
     params.output_freq = -1;    //-1 means no outputs, 0 just at the end, otherwise every output_freq steps

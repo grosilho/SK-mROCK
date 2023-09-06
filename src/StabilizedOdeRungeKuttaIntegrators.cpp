@@ -9,6 +9,7 @@ mRKC::mRKC(Parameters* param_, MultirateOde* mode_)
     
     damping = 0.05;
     beta = 2.-4.*damping/3.;
+    safe_add = param->safe_add;
        
     for(int i=0;i<4;i++)
         integr_add[i]=new Vector(mode->get_system_size());
@@ -29,9 +30,7 @@ void mRKC::update_n_stages_and_h(Real& h)
      * \f$\rho \Delta t \leq \beta s^2 \f$ with some cautions.
      */
     
-    unsigned int stages_limit = 1e6;
-    unsigned int safe_add = 1;
-    
+    unsigned int stages_limit = 1e6;    
 
     if(h*eigmax_S<1.5) //for s=1 we have beta=2 and not 2-4/3*damping, so maybe one stage is enough
         s=1;
@@ -205,7 +204,7 @@ RKC1::RKC1(Parameters* param_, Ode* ode_)
 :OdeRungeKuttaIntegrator(param_,ode_)
 {
     Astable = false;
-    
+    safe_add = param->safe_add;
     damping = 0.1;
     beta = 2.-4.*damping/3.;
 
@@ -231,7 +230,6 @@ void RKC1::update_n_stages_and_h(Real& h)
      */
     
     unsigned int stages_limit = 1e6;
-    unsigned int safe_add = 2;
 
     if(h*eigmax<1.5)
         s = 1;
@@ -363,7 +361,7 @@ ROCK2::ROCK2(Parameters* param_, Ode* ode_)
 :OdeRungeKuttaIntegrator(param_,ode_)
 {
     Astable = false;
-    
+    safe_add = param->safe_add;
     reinit_integrator();
 }
 
@@ -379,9 +377,7 @@ void ROCK2::update_n_stages_and_h(Real& h)
      * Remark: in the algorithm s[0] isn't the mathematical \f$s\f$, actually
      * s[0]=\f$s-2\f$.
      */
-    
-    unsigned int safe_add = 2;
-    
+        
     s=(int)sqrt((1.5+h*eigmax)/0.811); //here s actually is s-1  
     s = s + safe_add;        
     

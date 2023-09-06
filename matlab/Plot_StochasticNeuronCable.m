@@ -3,8 +3,8 @@ clear;
 clc;
 % close all;
 
-folder = '../../Results/Tests/NeuronCable/';
-sol_name = 'RKU2';
+folder = '../results/StochasticNeuronCable/';
+sol_name = 'sol';
 file_name = [folder sol_name '_evolution.m'];
 
 run(file_name);

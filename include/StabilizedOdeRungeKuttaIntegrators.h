@@ -25,6 +25,7 @@ protected:
     Vector* integr_add[4];
     Real damping, beta;
     Real eta;
+    unsigned safe_add;
 };
 
 class RKC1: public virtual OdeRungeKuttaIntegrator
@@ -44,6 +45,7 @@ protected:
     
 protected:
     Real damping, beta;
+    unsigned safe_add;
     unsigned int n_output_eigs;
 };
 
@@ -62,7 +64,7 @@ protected:
  
 protected:
     int mp[2];  ///<It is used in order to find the scheme's precomputed coefficients in the tables.
-    
+    unsigned safe_add;
     static int ms[46];      ///<Array of coefficients.
     static Real fp1[46];    ///<Array of coefficients.
     static Real fp2[46];    ///<Array of coefficients.

@@ -3,7 +3,7 @@ clear;
 clc;
 % close all;
 
-folder = '../../Results/Tests/Brusselator/';
+folder = '../results/StochasticBrusselator/';
 sol_name = 'sol';
 file_name = [folder sol_name '_evolution.m'];
 

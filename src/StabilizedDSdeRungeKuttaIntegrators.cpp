@@ -222,7 +222,6 @@ void SKmROCK::update_n_stages_and_h(Real& h)
      */
     
     unsigned int stages_limit = 1e6;
-    unsigned int safe_add = 1;
     
     if(h*eigmax_S<1.5) //for s=1 we have beta=2 and not 2-4/3*damping, so maybe one stage is enough
         s=1;

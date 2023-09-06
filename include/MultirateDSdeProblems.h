@@ -27,4 +27,18 @@ public:
     void rho(Real t, Vector& y, Real& eigmaxF, Real& eigmaxS);
 };
 
+class MultirateManyDiffusionTerms: public ManyDiffusionTerms, public MultirateDSde
+{
+public:
+    MultirateManyDiffusionTerms();
+    virtual ~MultirateManyDiffusionTerms();
+    
+    void fF(Real t, Vector& x, Vector& fx);
+    void fS(Real t, Vector& x, Vector& fx);
+        
+protected:
+    Vector cF,cS;
+    Vector FR,SR;
+};
+
 #endif	/* MULTIRATESDEPROBLEMS_H */

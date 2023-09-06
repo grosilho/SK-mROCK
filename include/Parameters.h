@@ -42,6 +42,7 @@ public:
     string rk_name;
     Real dt;
     unsigned int rho_freq;
+    unsigned safe_add;
     
     bool conv_test;
     unsigned int max_pow;

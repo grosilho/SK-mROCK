@@ -26,18 +26,12 @@ bool Parameters::initDSde(DSde*& sde)
         sde = new MultirateDSdeScalarNonStiffNonLinearTest();
     else if(ntest==3)
         sde = new ManyDiffusionTerms();
-//    else if(ntest==4)
-//        sde = new SdeOneDimensionalTest4(output_file);
-//    else if(ntest==5)
-//        sde = new TwoDimensionalSinCos(output_file);
-//    else if(ntest==6)
-//        sde = new DuffingVanDerPol(output_file);
-//    else if(ntest==7)
-//        sde = new StochasticBrusselator(output_file);
-//    else if(ntest==8)
-//        sde = new StochasticPopulationDynamics(output_file);
-//    else if(ntest==9)
-//        sde = new StochasticNeuronCable(output_file);
+   else if(ntest==4)
+       sde = new MultirateManyDiffusionTerms();
+   else if(ntest==5)
+       sde = new StochasticBrusselator();
+   else if(ntest==6)
+       sde = new StochasticNeuronCable();
     else
     { 
         cout<<"Problem "<<ntest<<" not known"<<endl;
@@ -116,7 +110,8 @@ bool Parameters::read_command_line(int argc, char** argv)
     rk_name = cl.follow(rk_name.c_str(),2,"-solver","-rk");
     dt = cl.follow(dt,3, "-dt", "-tau","-h");
     rho_freq = cl.follow(rho_freq,3, "-rhofreq", "-rho_freq", "-rfreq");
-    
+    safe_add = cl.follow(safe_add,2,"-safe_add","-sa");
+
     if(cl.search("-convtest"))
         conv_test=true;
     else

@@ -57,152 +57,65 @@ public:
     
     void set_initial_value(Vector& y0);
     void f(Real t, Vector& x, Vector& fx);
-    void analytical_df(Real t, Vector& x, Matrix& dfx); 
     
     void g(Real t, Vector& x, Vector& G, int r);
     void g(Real t, Vector& x, Matrix& G);
     
-    void rho(Real t, Vector& y, Real& eigmax);
+    // void rho(Real t, Vector& y, Real& eigmax);
         
     Real phi(const Vector& X);
         
 protected:
-    Vector a;
-    Vector b;
+    Vector c;
+    Vector R;
+    Matrix Nu;
+    Eigen::DiagonalMatrix<Real, 10> D;
 };
 
-/*
-class SdeOneDimensionalTest3: public Sde
+class StochasticBrusselator: public virtual DSde
 {
 public:
-    SdeOneDimensionalTest3(string output_file);
-    virtual ~SdeOneDimensionalTest3(){};
- 
-    void init_solution();
-    
-    void f(Real t, Vector& x, Vector& fx);
-    void g(Real t, Vector& x, Vector& gx);
-        
-    Real phi();
-    Real Exact_phi();
-    
-    void rho(Real& eigmax);
-protected:
-    Real y0;
-};
-
-// Problem from Tempone paper.
-// f is not differentiable so do not expect 2nd order convergence.
-// On the other hand its very good for efficiency tests.
-class SdeOneDimensionalTest4: public Sde
-{
-public:
-    SdeOneDimensionalTest4(string output_file);
-    virtual ~SdeOneDimensionalTest4(){};
- 
-    void init_solution();
-    
-    void f(Real t, Vector& x, Vector& fx);
-    void g(Real t, Vector& x, Vector& gx);
-        
-    Real phi();
-    Real Exact_phi();
-    
-    void rho(Real& eigmax);
-protected:
-    Real alpha;
-};
-
-// Problem from Tempone paper. 
-class TwoDimensionalSinCos: public Sde
-{
-public:
-    TwoDimensionalSinCos(string output_file);
-    virtual ~TwoDimensionalSinCos(){};
- 
-    void init_solution();
-    
-    void f(Real t, Vector& x, Vector& fx);
-    void g(Real t, Vector& x, Matrix& G);
-    void g(Real t, Vector& x, Vector& G, int r);
-        
-    void rho(Real& eigmax);
-    
-    Real phi();
-    Real Exact_phi();
-};
-
-class DuffingVanDerPol: public Sde
-{
-public:
-    DuffingVanDerPol(string output_file);
-    virtual ~DuffingVanDerPol(){};
- 
-    void init_solution();
-    
-    void f(Real t, Vector& x, Vector& fx);
-    void g(Real t, Vector& x, Matrix& G);
-    void g(Real t, Vector& x, Vector& G, int r);
-            
-    Real phi();
-    Real Exact_phi();
-    
-    void rho(Real& eigmax);
-
-protected:
-    Real alpha;
-    Real sigma;
-};
-
-class StochasticBrusselator: public Sde, public Brusselator
-{
-public:
-    StochasticBrusselator(string output_file);
+    StochasticBrusselator();
     virtual ~StochasticBrusselator(){};
  
+    void set_initial_value(Vector& y0);
+    
+    void f(Real t, Vector& x, Vector& fx);
+
     void g(Real t, Vector& x, Vector& G, int r);
     void g(Real t, Vector& x, Matrix& G);
         
-    Real phi();
-    Real Exact_phi();
+    Real phi(const Vector& X);
     
 protected:
+    Real alpha;
     Real sigma;
 };
 
-class StochasticPopulationDynamics: public Sde, public PopulationDynamics
-{
-public:
-    StochasticPopulationDynamics(string output_file);
-    virtual ~StochasticPopulationDynamics(){};
-     
-    void g(Real t, Vector& x, Matrix& G);
-    void g(Real t, Vector& x, Vector& G, int r);
-        
-    Real phi();
-    Real Exact_phi();
-        
-protected:
-    Real mu1;
-    Real mu2;
-};
 
-class StochasticNeuronCable: public Sde, public NeuronCable
+class StochasticNeuronCable: public virtual DSde
 {
 public:
-    StochasticNeuronCable(string output_file);
-    virtual ~StochasticNeuronCable(){};
+    StochasticNeuronCable();
+    virtual ~StochasticNeuronCable();
+
+    void set_initial_value(Vector& y0);
+    
+    void f(Real t, Vector& x, Vector& fx);
+    
+    void rho(Real t, Vector& y, Real& eigmax);
      
     void g(Real t, Vector& x, Vector& G);
         
-    Real phi();
-    Real Exact_phi();
+    Real phi(const Vector& X);
         
 protected:
+    Real nu;
+    Real beta;
     Real sigma;
     Real V0;
 };
 
-*/
+
 #endif	/* SDEPROBLEMS_H */
 
