@@ -1,44 +1,80 @@
 #ifndef MULTIRATESDEPROBLEMS_H
-#define	MULTIRATESDEPROBLEMS_H
+#define MULTIRATESDEPROBLEMS_H
 
 #include "DSdeProblems.h"
 
-class MultirateDSdeDahlquistTestProblem: public DSdeDahlquistTestProblem, public MultirateDSde
+class MultirateDahlquistTestProblem : public DahlquistTestProblem, public MultirateDSde
 {
 public:
-    MultirateDSdeDahlquistTestProblem();
-    virtual ~MultirateDSdeDahlquistTestProblem();
+    MultirateDahlquistTestProblem();
+    virtual ~MultirateDahlquistTestProblem();
 
-    void fF(Real t, Vector& x, Vector& fx);
-    void fS(Real t, Vector& x, Vector& fx);
-    
-    void rho(Real t, Vector& y, Real& eigmaxF, Real& eigmaxS);
+    void fF(Real t, Vector &x, Vector &fx);
+    void fS(Real t, Vector &x, Vector &fx);
+
+    void rho(Real t, Vector &y, Real &eigmaxF, Real &eigmaxS);
 };
 
-class MultirateDSdeScalarNonStiffNonLinearTest: public DSdeScalarNonStiffNonLinearTest, public MultirateDSde
+class MultirateScalarNonStiffNonLinearTest : public ScalarNonStiffNonLinearTest, public MultirateDSde
 {
 public:
-    MultirateDSdeScalarNonStiffNonLinearTest();
-    virtual ~MultirateDSdeScalarNonStiffNonLinearTest();
+    MultirateScalarNonStiffNonLinearTest();
+    virtual ~MultirateScalarNonStiffNonLinearTest();
 
-    void fF(Real t, Vector& x, Vector& fx);
-    void fS(Real t, Vector& x, Vector& fx);
-    
-    void rho(Real t, Vector& y, Real& eigmaxF, Real& eigmaxS);
+    void fF(Real t, Vector &x, Vector &fx);
+    void fS(Real t, Vector &x, Vector &fx);
+
+    void rho(Real t, Vector &y, Real &eigmaxF, Real &eigmaxS);
 };
 
-class MultirateManyDiffusionTerms: public ManyDiffusionTerms, public MultirateDSde
+class MultirateManyDiffusionTerms : public ManyDiffusionTerms, public MultirateDSde
 {
 public:
     MultirateManyDiffusionTerms();
     virtual ~MultirateManyDiffusionTerms();
-    
-    void fF(Real t, Vector& x, Vector& fx);
-    void fS(Real t, Vector& x, Vector& fx);
-        
+
+    void fF(Real t, Vector &x, Vector &fx);
+    void fS(Real t, Vector &x, Vector &fx);
+
 protected:
-    Vector cF,cS;
-    Vector FR,SR;
+    Vector cF, cS;
+    Vector FR, SR;
 };
 
-#endif	/* MULTIRATESDEPROBLEMS_H */
+class MultirateStochasticReactionDiffusion : public StochasticReactionDiffusion, public MultirateDSde
+{
+public:
+    MultirateStochasticReactionDiffusion();
+    virtual ~MultirateStochasticReactionDiffusion();
+
+    void fF(Real t, Vector &x, Vector &fx);
+    void fS(Real t, Vector &x, Vector &fx);
+
+    void rho(Real t, Vector &y, Real &eigmaxF, Real &eigmaxS);
+};
+
+class MultirateDiffusionRefinedMesh : public DiffusionRefinedMesh, public MultirateDSde
+{
+public:
+    MultirateDiffusionRefinedMesh();
+    virtual ~MultirateDiffusionRefinedMesh();
+
+    void fF(Real t, Vector &x, Vector &fx);
+    void fS(Real t, Vector &x, Vector &fx);
+
+    void rho(Real t, Vector &y, Real &eigmaxF, Real &eigmaxS);
+};
+
+class MultirateFastSlowMolecules : public FastSlowMolecules, public MultirateDSde
+{
+public:
+    MultirateFastSlowMolecules();
+    virtual ~MultirateFastSlowMolecules();
+
+    void fF(Real t, Vector &x, Vector &fx);
+    void fS(Real t, Vector &x, Vector &fx);
+
+    void rho(Real t, Vector &y, Real &eigmaxF, Real &eigmaxS);
+};
+
+#endif /* MULTIRATESDEPROBLEMS_H */

@@ -3,8 +3,8 @@ clear;
 clc;
 % close all;
 
-folder = '../dist/Release/GNU_Version_10-MacOSX/Tests/DiffusionRefinedMesh/';
-sol_name = 'sol_IE';
+folder = '../results/DiffusionRefinedMesh/';
+sol_name = 'sol';
 file_name = [folder sol_name '_evolution.m'];
 
 run(file_name);

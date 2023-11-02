@@ -1,70 +1,70 @@
 #ifndef SDEPROBLEMS_H
-#define	SDEPROBLEMS_H
+#define SDEPROBLEMS_H
 
 #include "DSde.h"
 
 // test equation
-class DSdeDahlquistTestProblem: public virtual DSde
+class DahlquistTestProblem : public virtual DSde
 {
 public:
-    DSdeDahlquistTestProblem();
-    virtual ~DSdeDahlquistTestProblem(){};
+    DahlquistTestProblem();
+    virtual ~DahlquistTestProblem(){};
 
-    void set_initial_value(Vector& y0);
-    void f(Real t, Vector& x, Vector& fx);
-    
-    void rho(Real t, Vector& y, Real& eigmax);
-    void AN_df(Real t, Vector& x, Matrix& dfx); 
- 
-    void g(Real t, Vector& x, Vector& G);
-    void g(Real t, Vector& x, Vector& G, int r);
-    void g(Real t, Vector& x, Matrix& G);
-        
-    virtual Real phi(const Vector& X);
-    
+    void set_initial_value(Vector &y0);
+    void f(Real t, Vector &x, Vector &fx);
+
+    void rho(Real t, Vector &y, Real &eigmax);
+    void AN_df(Real t, Vector &x, Matrix &dfx);
+
+    void g(Real t, Vector &x, Vector &G);
+    void g(Real t, Vector &x, Vector &G, int r);
+    void g(Real t, Vector &x, Matrix &G);
+
+    virtual Real phi(const Vector &X);
+
 protected:
     static Real lambda;
     static Real mu;
     static Real xi;
 };
 
-// Sde One dimensional test 1 from SROCK2 paper
-class DSdeScalarNonStiffNonLinearTest: public virtual DSde
+// Problem of Section 5.1 in Abdulle, A., & Rosilho de Souza, G. (2022). Explicit stabilized multirate method for stiff stochastic differential equations. SIAM Journal on Scientific Computing, 44(4), A1859–A1883. https://doi.org/10.1137/21M1439018
+class ScalarNonStiffNonLinearTest : public virtual DSde
 {
 public:
-    DSdeScalarNonStiffNonLinearTest();
-    virtual ~DSdeScalarNonStiffNonLinearTest(){};
+    ScalarNonStiffNonLinearTest();
+    virtual ~ScalarNonStiffNonLinearTest(){};
 
-    void set_initial_value(Vector& y0);
-    void f(Real t, Vector& x, Vector& fx);
-    
-    void rho(Real t, Vector& y, Real& eigmax);
-    void AN_df(Real t, Vector& x, Matrix& dfx); 
- 
-    void g(Real t, Vector& x, Vector& G);
-    void g(Real t, Vector& x, Vector& G, int r);
-    void g(Real t, Vector& x, Matrix& G);
-        
-    Real phi(const Vector& X);
+    void set_initial_value(Vector &y0);
+    void f(Real t, Vector &x, Vector &fx);
+
+    void rho(Real t, Vector &y, Real &eigmax);
+    void AN_df(Real t, Vector &x, Matrix &dfx);
+
+    void g(Real t, Vector &x, Vector &G);
+    void g(Real t, Vector &x, Vector &G, int r);
+    void g(Real t, Vector &x, Matrix &G);
+
+    Real phi(const Vector &X);
 };
 
-
-class ManyDiffusionTerms: public virtual DSde
+// Problem of Section 5.2 in Abdulle, A., & Rosilho de Souza, G. (2022). Explicit stabilized multirate method for stiff stochastic differential equations. SIAM Journal on Scientific Computing, 44(4), A1859–A1883. https://doi.org/10.1137/21M1439018
+class ManyDiffusionTerms : public virtual DSde
 {
 public:
     ManyDiffusionTerms();
     virtual ~ManyDiffusionTerms();
-    
-    void set_initial_value(Vector& y0);
-    void f(Real t, Vector& x, Vector& fx);
-    
-    void g(Real t, Vector& x, Vector& G, int r);
-    void g(Real t, Vector& x, Matrix& G);
-    
+
+    void set_initial_value(Vector &y0);
+    void f(Real t, Vector &x, Vector &fx);
+
+    void g(Real t, Vector &x, Vector &G, int r);
+    void g(Real t, Vector &x, Matrix &G);
+
     // void rho(Real t, Vector& y, Real& eigmax);
-        
-    Real phi(const Vector& X);
-        
+
+    Real phi(const Vector &X);
+
 protected:
     Vector c;
     Vector R;
@@ -72,43 +72,22 @@ protected:
     Eigen::DiagonalMatrix<Real, 10> D;
 };
 
-class StochasticBrusselator: public virtual DSde
+class StochasticReactionDiffusion : public virtual DSde
 {
 public:
-    StochasticBrusselator();
-    virtual ~StochasticBrusselator(){};
- 
-    void set_initial_value(Vector& y0);
-    
-    void f(Real t, Vector& x, Vector& fx);
+    StochasticReactionDiffusion();
+    virtual ~StochasticReactionDiffusion();
 
-    void g(Real t, Vector& x, Vector& G, int r);
-    void g(Real t, Vector& x, Matrix& G);
-        
-    Real phi(const Vector& X);
-    
-protected:
-    Real alpha;
-    Real sigma;
-};
+    void set_initial_value(Vector &y0);
 
+    void f(Real t, Vector &x, Vector &fx);
 
-class StochasticNeuronCable: public virtual DSde
-{
-public:
-    StochasticNeuronCable();
-    virtual ~StochasticNeuronCable();
+    void rho(Real t, Vector &y, Real &eigmax);
 
-    void set_initial_value(Vector& y0);
-    
-    void f(Real t, Vector& x, Vector& fx);
-    
-    void rho(Real t, Vector& y, Real& eigmax);
-     
-    void g(Real t, Vector& x, Vector& G);
-        
-    Real phi(const Vector& X);
-        
+    void g(Real t, Vector &x, Vector &G);
+
+    Real phi(const Vector &X);
+
 protected:
     Real nu;
     Real beta;
@@ -116,6 +95,50 @@ protected:
     Real V0;
 };
 
+class DiffusionRefinedMesh : public virtual DSde
+{
+public:
+    DiffusionRefinedMesh();
+    virtual ~DiffusionRefinedMesh();
 
-#endif	/* SDEPROBLEMS_H */
+    void set_initial_value(Vector &y0);
 
+    void f(Real t, Vector &x, Vector &fx);
+
+    void rho(Real t, Vector &y, Real &eigmax);
+
+    void g(Real t, Vector &x, Vector &G);
+
+    Real phi(const Vector &X);
+
+protected:
+    Real nu;
+    Real sigma;
+    Real H1, H2, sqrtH1, sqrtH2;
+    unsigned N1, N2;
+};
+
+class FastSlowMolecules : public virtual DSde
+{
+public:
+    FastSlowMolecules();
+    virtual ~FastSlowMolecules();
+
+    void set_initial_value(Vector &y0);
+
+    void f(Real t, Vector &x, Vector &fx);
+
+    void rho(Real t, Vector &y, Real &eigmax);
+
+    void g(Real t, Vector &x, Vector &G, int r);
+    void g(Real t, Vector &x, Matrix &G);
+
+    Real phi(const Vector &X);
+
+protected:
+    Real l1, l2;
+    Real mu1, mu2;
+    Real alpha;
+};
+
+#endif /* SDEPROBLEMS_H */

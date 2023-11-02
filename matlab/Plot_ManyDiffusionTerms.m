@@ -27,5 +27,11 @@ for i=1:n_states
     plot(t,y(i,:));
 end
 
+figure;
+hold on;
+for i=1:n_states
+    plot(t,y(i,:));
+end
+
 
 
