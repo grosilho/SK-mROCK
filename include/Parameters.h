@@ -37,7 +37,6 @@ public:
 
     bool matlab_output;
     bool bin_output;
-    bool specific_output;
 
     string rk_name;
     Real dt;

@@ -13,13 +13,12 @@ int main(int argc, char **argv)
     params.rk_name = "SKROCK"; // name of the solver
     params.dt = 1e-2;          // step size, or starting step size in case dtadap=true.
     params.rho_freq = 5;       // estimation of the spectral radius every rho_freq steps
-    params.safe_add = 1;
+    params.safe_add = 0;
 
-    params.output_file = "sol";     // output file name
-    params.output_freq = -1;        //-1 means no outputs, 0 just at the end, otherwise every output_freq steps
-    params.matlab_output = false;   // generates the .m file or not
-    params.bin_output = false;      // generates the .bin file or not
-    params.specific_output = false; // calls a problem specific output function
+    params.output_file = "sol";   // output file name
+    params.output_freq = -1;      //-1 means no outputs, 0 just at the end, otherwise every output_freq steps
+    params.matlab_output = false; // generates the .m file or not
+    params.bin_output = false;    // generates the .bin file or not
 
     //  Parameters for convergence experiments
     params.conv_test = false; // if false, we run once the experiment with step size params.dt
@@ -27,7 +26,7 @@ int main(int argc, char **argv)
     params.min_pow = 3;       // with k=min_pow,...,max_pow.
 
     //  Specific for SDEs
-    params.MCiter = 10;          // Monte Carlo iterations
+    params.MCiter = 1e3;         // Monte Carlo iterations
     params.continuous = true;    // Brownian motion (true) or discrete r.v. (false) with same first moments.
     params.seed = -1;            // if -1 the it's based on clock.
     params.post_proc = false;    // postprocessing for increasing ergodic order

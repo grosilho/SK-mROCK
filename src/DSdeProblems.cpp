@@ -195,13 +195,13 @@ StochasticReactionDiffusion::StochasticReactionDiffusion()
 {
     problem_name = "StochasticReactionDiffusion";
 
-    tend = 10.;
+    tend = 1.;
     nu = 0.1;
     beta = 20.0;
     sigma = 2.;
     V0 = 10.;
 
-    neqn = 512;
+    neqn = 128;
     cte_rho = true;
     know_rho = true;
     analytical_df = false;
@@ -355,8 +355,8 @@ FastSlowMolecules::FastSlowMolecules()
 
     l1 = -50.;
     l2 = -1.;
-    mu1 = sqrt(abs(l1));
-    mu2 = sqrt(abs(l2));
+    mu1 = 0.5 * sqrt(abs(l1));
+    mu2 = 0.5 * sqrt(abs(l2));
     alpha = 2.;
 }
 
