@@ -1,8 +1,3 @@
-# Results files
-*_evolution.m
-*.bin
-*.csv
-
 #Prerequisites
 *.d
 
