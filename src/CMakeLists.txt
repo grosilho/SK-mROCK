@@ -1,5 +1,5 @@
 
-include_directories(BEFORE ../include)
+include_directories(BEFORE ../include ../external/eigen ../external/getpot)
 
 add_library(MainHeader INTERFACE)
 target_link_libraries(MainHeader INTERFACE Eigen3::Eigen)

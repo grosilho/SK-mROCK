@@ -1,46 +1,39 @@
 cmake_minimum_required(VERSION 3.17...3.24)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
-if(APPLE)
-	message(STATUS "Platform: MacOSX")
-	set(Eigen3_ROOT "${CMAKE_SOURCE_DIR}/../../Libraries/eigen-3.4.0-MacOSX")
-	set(autodiff_ROOT "${CMAKE_SOURCE_DIR}/../../Libraries/autodiff-0.5.0-MacOSX")
-	set(Gmsh_ROOT "${CMAKE_SOURCE_DIR}/../../Libraries/gmsh-4.10.5-MacOSX")
-	set(FFTW3_ROOT "${CMAKE_SOURCE_DIR}/../../Libraries/fftw-3.3.10-MacOSX")
-else()
-	message(STATUS "Platform: Linux")
-	set(Eigen3_ROOT "${CMAKE_SOURCE_DIR}/../../Libraries/eigen-3.4.0")
-	set(autodiff_ROOT "${CMAKE_SOURCE_DIR}/../../Libraries/autodiff-0.5.0")
-	set(Gmsh_ROOT "${CMAKE_SOURCE_DIR}/../../Libraries/gmsh-4.10.5")
-	set(FFTW3_ROOT "${CMAKE_SOURCE_DIR}/../../Libraries/fftw-3.3.10")
-endif()
+file(MAKE_DIRECTORY build)
 
 project(MultirateIntegrators
         VERSION 1.0 
-        DESCRIPTION "Implmementatiion of explicit stabilized multirate methods,  and other methods as well for comparison." 
+        DESCRIPTION "Implementatiion of multirate explicit stabilized integrators for stochastic differential equations." 
         LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_BUILD_TYPE "Release")
 
 option(ENABLE_OPENMP "Enables OpenMP" ON)
 option(BUILD_SHARED_LIBS "Build shared (ON) or static (OFF) libraries" OFF)
-option(GPT_PROFILE "Enables gperf-tools profiling by linking the appropriate libraries" OFF)
-option(GNU_PROFILE "Enables GNU profiling by linking the appropriate libraries" OFF)
-option(SCOREP_PROFILE "Enables ScoreP profiling by prepending scorep instrumentation" OFF)
 
-if(GNU_PROFILE AND APPLE)
-    message(FATAL_ERROR "Cannot profile with GNU Profile on MacOSX.")
+add_executable(${PROJECT_NAME} src/main.cpp)
+
+#download submodules
+find_package(Git QUIET)
+if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+# Update submodules as needed
+    option(GIT_SUBMODULE "Check submodules during build" ON)
+    if(GIT_SUBMODULE)
+        message(STATUS "Submodule update")
+        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                        RESULT_VARIABLE GIT_SUBMOD_RESULT)
+        if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+            message(FATAL_ERROR "git submodule update --init --recursive failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+        endif()
+    else()
+    endif()
 endif()
-if(GPT_PROFILE AND APPLE)
-    message(FATAL_ERROR "Cannot profile with gperftools on MacOSX.")
-endif()
 
-find_package(Eigen3 REQUIRED CONFIG) # Eigen3::Eigen
-find_package(autodiff REQUIRED CONFIG) # autodiff::autodiff
-find_package(Gmsh REQUIRED) # ${GMSH_LIB}, ${GMSH_INC}
-find_package(FFTW3 REQUIRED CONFIG) #${FFTW3_INCLUDE_DIRS}, ${FFTW3_LIBRARY_DIRS}, ${FFTW3_LIBRARIES}
-
+find_package(Eigen3 REQUIRED CONFIG) # Eigen3::Eigen (v 3.4.1 is compatible)
 if(ENABLE_OPENMP)
     find_package(OpenMP)
     if(OpenMP_CXX_FOUND)
@@ -48,30 +41,14 @@ if(ENABLE_OPENMP)
     endif()
 endif()
 
-if(GPT_PROFILE)
-    link_libraries(-Wl,--no-as-needed,-lprofiler,--as-needed)
-endif()
-if(GNU_PROFILE)
-    link_libraries(-pg)
-endif()
-if(SCOREP_PROFILE)
-    if(ENABLE_OPENMP)
-        message(AUTHOR_WARNING "Remember to set this environment variable before building:\n"
-                 "export SCOREP_WRAPPER_INSTRUMENTER_FLAGS=--thread=omp")
-    endif()
-    message(AUTHOR_WARNING "It is useful to set some environment variables to limit profiling data, as\n"
-            "export SCOREP_PROFILING_MAX_CALLPATH_DEPTH=10")
-    if(APPLE)
-    	set(CMAKE_CXX_COMPILER "/opt/scorep/bin/scorep-clang++")
-    else()
-	set(CMAKE_CXX_COMPILER "scorep-g++")
-    endif()
-endif()
-
-include_directories(BEFORE include)
-
 add_subdirectory(src)
+target_include_directories(${PROJECT_NAME} 
+    PUBLIC include
+    PUBLIC external/eigen
+    PUBLIC external/getpot
+)
+target_link_directories(${PROJECT_NAME} PRIVATE src)
+target_link_libraries(${PROJECT_NAME} PUBLIC MainHeader parameters monte_carlo)
 
-add_executable(main src/main.cpp)
-target_link_libraries(main PUBLIC MainHeader parameters monte_carlo)
 
+install(TARGETS ${PROJECT_NAME} DESTINATION .)

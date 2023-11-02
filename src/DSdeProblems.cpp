@@ -351,7 +351,7 @@ FastSlowMolecules::FastSlowMolecules()
     noise = GENERAL;
 
     cte_rho = false;
-    know_rho = false;
+    know_rho = true;
 
     l1 = -50.;
     l2 = -1.;
