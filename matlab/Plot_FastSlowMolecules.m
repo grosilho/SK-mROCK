@@ -29,8 +29,8 @@ figure;
 plot(t,y(1,:),'LineWidth',1.5);
 hold on;
 plot(t,y(2,:),'LineWidth',1.5);
-legend('Fast','Slow','fontsize',14);
-set(gca,'FontSize',15);
+legend('Fast','Slow','fontsize',20);
+set(gca,'FontSize',20);
 title('Population Dynamics Model')
 
 

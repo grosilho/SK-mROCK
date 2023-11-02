@@ -196,18 +196,18 @@ StochasticReactionDiffusion::StochasticReactionDiffusion()
     problem_name = "StochasticReactionDiffusion";
 
     tend = 10.;
-    nu = 0.01;
-    beta = 1.0;
-    sigma = 0.5;
+    nu = 0.1;
+    beta = 20.0;
+    sigma = 2.;
     V0 = 10.;
 
-    neqn = 128;
+    neqn = 512;
     cte_rho = true;
     know_rho = true;
     analytical_df = false;
     dense_Jacobian = false;
 
-    Wsize = 128;
+    Wsize = neqn;
     noise = DIAGONAL;
 }
 
