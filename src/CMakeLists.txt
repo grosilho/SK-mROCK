@@ -14,10 +14,6 @@ add_library(ode Ode.cpp)
 target_link_libraries(ode PUBLIC MainHeader)
 target_include_directories(ode PUBLIC MainHeader)
 
-add_library(ode_problems OdeProblems.cpp)
-target_include_directories(ode_problems PUBLIC MainHeader)
-target_link_libraries(ode_problems PUBLIC ode)
-
 # DSDEs
 add_library(stochastic_integrals StochasticIntegrals.cpp)
 target_include_directories(stochastic_integrals PUBLIC MainHeader)
