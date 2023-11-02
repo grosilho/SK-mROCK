@@ -118,11 +118,11 @@ protected:
     unsigned N1, N2;
 };
 
-class FastSlowMolecules : public virtual DSde
+class PopulationDynamics : public virtual DSde
 {
 public:
-    FastSlowMolecules();
-    virtual ~FastSlowMolecules();
+    PopulationDynamics();
+    virtual ~PopulationDynamics();
 
     void set_initial_value(Vector &y0);
 

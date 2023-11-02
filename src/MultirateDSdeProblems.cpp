@@ -148,28 +148,28 @@ void MultirateDiffusionRefinedMesh::rho(Real t, Vector &y, Real &eigmaxF, Real &
     eigmaxS = nu * 4. * min(1. / H1 / H1, 1. / H2 / H2);
 }
 
-MultirateFastSlowMolecules::MultirateFastSlowMolecules()
-    : FastSlowMolecules(), MultirateDSde()
+MultiratePopulationDynamics::MultiratePopulationDynamics()
+    : PopulationDynamics(), MultirateDSde()
 {
 }
 
-MultirateFastSlowMolecules::~MultirateFastSlowMolecules()
+MultiratePopulationDynamics::~MultiratePopulationDynamics()
 {
 }
 
-void MultirateFastSlowMolecules::fF(Real t, Vector &X, Vector &fx)
+void MultiratePopulationDynamics::fF(Real t, Vector &X, Vector &fx)
 {
     fx(0) = -l1 * X(0) * (1. - X(0));
     fx(1) = 0.;
 }
 
-void MultirateFastSlowMolecules::fS(Real t, Vector &X, Vector &fx)
+void MultiratePopulationDynamics::fS(Real t, Vector &X, Vector &fx)
 {
     fx(0) = alpha * (X(1) - 1.);
     fx(1) = -l2 * X(1) * (1. - X(1));
 }
 
-void MultirateFastSlowMolecules::rho(Real t, Vector &X, Real &eigmaxF, Real &eigmaxS)
+void MultiratePopulationDynamics::rho(Real t, Vector &X, Real &eigmaxF, Real &eigmaxS)
 {
     eigmaxS = abs(l2 * (1. - 2 * X(1)));
     eigmaxF = abs(l1 * (1. - 2 * X(0)));

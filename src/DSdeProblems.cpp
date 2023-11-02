@@ -339,10 +339,10 @@ void DiffusionRefinedMesh::g(Real t, Vector &x, Vector &G)
     G(N1) = sigma * x(N1) / sqrt((H1 + H2) / 2.);
 }
 
-FastSlowMolecules::FastSlowMolecules()
+PopulationDynamics::PopulationDynamics()
     : Ode(), DSde()
 {
-    problem_name = "FastSlowMolecules";
+    problem_name = "PopulationDynamics";
 
     tend = 2.;
 
@@ -360,23 +360,23 @@ FastSlowMolecules::FastSlowMolecules()
     alpha = 2.;
 }
 
-FastSlowMolecules::~FastSlowMolecules()
+PopulationDynamics::~PopulationDynamics()
 {
 }
 
-void FastSlowMolecules::set_initial_value(Vector &y0)
+void PopulationDynamics::set_initial_value(Vector &y0)
 {
     y0.resize(neqn);
     y0 << 0.5, 0.5;
 }
 
-void FastSlowMolecules::f(Real t, Vector &X, Vector &fx)
+void PopulationDynamics::f(Real t, Vector &X, Vector &fx)
 {
     fx(0) = -l1 * X(0) * (1. - X(0)) + alpha * (X(1) - 1.);
     fx(1) = -l2 * X(1) * (1. - X(1));
 }
 
-void FastSlowMolecules::g(Real t, Vector &X, Vector &G, int r)
+void PopulationDynamics::g(Real t, Vector &X, Vector &G, int r)
 {
     if (r == 0)
     {
@@ -390,7 +390,7 @@ void FastSlowMolecules::g(Real t, Vector &X, Vector &G, int r)
     }
 }
 
-void FastSlowMolecules::g(Real t, Vector &X, Matrix &G)
+void PopulationDynamics::g(Real t, Vector &X, Matrix &G)
 {
     G(0, 0) = -mu1 * X(0) * (1. - X(0));
     G(0, 1) = -mu2 * (1. - X(0));
@@ -398,12 +398,12 @@ void FastSlowMolecules::g(Real t, Vector &X, Matrix &G)
     G(1, 1) = 0.;
 }
 
-Real FastSlowMolecules::phi(const Vector &X)
+Real PopulationDynamics::phi(const Vector &X)
 {
     return X(0) * X(1);
 }
 
-void FastSlowMolecules::rho(Real t, Vector &X, Real &eigmax)
+void PopulationDynamics::rho(Real t, Vector &X, Real &eigmax)
 {
     Real eigmaxS = abs(l2 * (1. - 2 * X(1)));
     Real eigmaxF = abs(l1 * (1. - 2 * X(0)));

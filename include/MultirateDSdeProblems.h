@@ -65,11 +65,11 @@ public:
     void rho(Real t, Vector &y, Real &eigmaxF, Real &eigmaxS);
 };
 
-class MultirateFastSlowMolecules : public FastSlowMolecules, public MultirateDSde
+class MultiratePopulationDynamics : public PopulationDynamics, public MultirateDSde
 {
 public:
-    MultirateFastSlowMolecules();
-    virtual ~MultirateFastSlowMolecules();
+    MultiratePopulationDynamics();
+    virtual ~MultiratePopulationDynamics();
 
     void fF(Real t, Vector &x, Vector &fx);
     void fS(Real t, Vector &x, Vector &fx);

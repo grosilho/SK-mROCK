@@ -30,7 +30,7 @@ bool Parameters::initDSde(DSde *&sde)
     else if (ntest == 5)
         sde = new MultirateDiffusionRefinedMesh();
     else if (ntest == 6)
-        sde = new MultirateFastSlowMolecules();
+        sde = new MultiratePopulationDynamics();
     else
     {
         cout << "Problem " << ntest << " not known" << endl;

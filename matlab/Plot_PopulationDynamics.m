@@ -3,7 +3,7 @@ clear;
 clc;
 % close all;
 
-folder = '../results/FastSlowMolecules/';
+folder = '../results/PopulationDynamics/';
 solname = 'sol';
 
 n_states = 2;
